@@ -34,53 +34,27 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>;
 };
 
-// PublicRoute component - redirects to home if authenticated
-const PublicRoute = ({ children }: { children: React.ReactNode }) => {
-  const { isAuthenticated, isLoading } = useAuth();
-  
-  // Show loading while checking authentication status
-  if (isLoading) {
-    return <div className="flex justify-center items-center h-screen">Загрузка...</div>;
-  }
-  
-  // Redirect to home if already authenticated
-  if (isAuthenticated) {
-    return <Navigate to="/" replace />;
-  }
-  
-  // Show the public content if not authenticated
-  return <>{children}</>;
-};
-
 // AppRoutes component for using authentication context
 const AppRoutes = () => {
+  const { isAuthenticated } = useAuth();
+
   return (
     <Routes>
-      {/* Public routes */}
-      <Route 
-        path="/login" 
-        element={
-          <PublicRoute>
-            <Login />
-          </PublicRoute>
-        } 
-      />
-      <Route 
-        path="/register" 
-        element={
-          <PublicRoute>
-            <Register />
-          </PublicRoute>
-        } 
-      />
+      {/* Public routes - directly accessible without wrapper */}
+      <Route path="/login" element={<Login />} />
+      <Route path="/register" element={<Register />} />
       
       {/* Protected routes */}
       <Route 
         path="/" 
         element={
-          <ProtectedRoute>
-            <Index />
-          </ProtectedRoute>
+          isAuthenticated ? (
+            <ProtectedRoute>
+              <Index />
+            </ProtectedRoute>
+          ) : (
+            <Navigate to="/login" replace />
+          )
         } 
       />
       <Route 

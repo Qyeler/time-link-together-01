@@ -102,17 +102,15 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
       // Simulate network delay
       await new Promise(resolve => setTimeout(resolve, 1000));
       
-      // Simple mock authentication - in a real app, this would be a backend request
+      // Mock login - in a real app, this would validate credentials with backend
       let foundUser: User | null = null;
       
-      // Try to find a user with matching email
-      if (email === 'user1@example.com') {
+      // For demo, accept any email format that matches our mock users
+      if (email.includes('user1')) {
         foundUser = mockUsers['user1'];
-      } else if (email === 'user2@example.com') {
+      } else if (email.includes('user2')) {
         foundUser = mockUsers['user2'];
-      }
-      
-      if (!foundUser) {
+      } else {
         throw new Error('Пользователь не найден');
       }
       
@@ -149,9 +147,14 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
       // Simulate network delay
       await new Promise(resolve => setTimeout(resolve, 1000));
       
-      // Simple mock registration - in a real app, this would be a backend request
-      // For demo, just pretend we registered and log in as user2
-      const mockUser = mockUsers['user2'];
+      // Create a new mock user
+      const newUserId = `user${Date.now()}`;
+      const mockUser: User = {
+        id: newUserId,
+        name: name,
+        email: email,
+        avatar: `https://i.pravatar.cc/150?img=${Math.floor(Math.random() * 70)}`,
+      };
       
       // Save user to state and localStorage
       setUser(mockUser);

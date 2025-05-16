@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -22,7 +22,8 @@ const formSchema = z.object({
 });
 
 const Register = () => {
-  const { register, isLoading } = useAuth();
+  const { register, isAuthenticated } = useAuth();
+  const navigate = useNavigate();
   const [submitting, setSubmitting] = useState(false);
   
   const form = useForm<z.infer<typeof formSchema>>({
@@ -34,12 +35,19 @@ const Register = () => {
       confirmPassword: "",
     },
   });
+
+  // If already authenticated, redirect to home
+  React.useEffect(() => {
+    if (isAuthenticated) {
+      navigate('/');
+    }
+  }, [isAuthenticated, navigate]);
   
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
       setSubmitting(true);
       await register(values.name, values.email, values.password);
-      // Нет редиректа здесь - он обрабатывается в PublicRoute компоненте
+      navigate('/');
     } catch (error) {
       console.error("Registration failed:", error);
       toast({
@@ -51,8 +59,6 @@ const Register = () => {
       setSubmitting(false);
     }
   };
-  
-  const loading = isLoading || submitting;
   
   return (
     <div className="min-h-screen flex items-center justify-center bg-secondary/20 p-4">
@@ -73,7 +79,7 @@ const Register = () => {
                   <FormItem>
                     <FormLabel>Имя</FormLabel>
                     <FormControl>
-                      <Input placeholder="Иван Иванов" {...field} disabled={loading} />
+                      <Input placeholder="Иван Иванов" {...field} disabled={submitting} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -86,7 +92,7 @@ const Register = () => {
                   <FormItem>
                     <FormLabel>Email</FormLabel>
                     <FormControl>
-                      <Input placeholder="example@mail.ru" {...field} disabled={loading} />
+                      <Input placeholder="example@mail.ru" {...field} disabled={submitting} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -99,7 +105,7 @@ const Register = () => {
                   <FormItem>
                     <FormLabel>Пароль</FormLabel>
                     <FormControl>
-                      <Input type="password" placeholder="••••••" {...field} disabled={loading} />
+                      <Input type="password" placeholder="••••••" {...field} disabled={submitting} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -112,14 +118,14 @@ const Register = () => {
                   <FormItem>
                     <FormLabel>Подтвердите пароль</FormLabel>
                     <FormControl>
-                      <Input type="password" placeholder="••••••" {...field} disabled={loading} />
+                      <Input type="password" placeholder="••••••" {...field} disabled={submitting} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-              <Button type="submit" variant="black" className="w-full" disabled={loading}>
-                {loading ? "Регистрация..." : "Зарегистрироваться"}
+              <Button type="submit" variant="black" className="w-full" disabled={submitting}>
+                {submitting ? "Регистрация..." : "Зарегистрироваться"}
               </Button>
             </form>
           </Form>

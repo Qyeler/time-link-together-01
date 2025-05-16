@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -17,7 +17,8 @@ const formSchema = z.object({
 });
 
 const Login = () => {
-  const { login, isLoading } = useAuth();
+  const { login, isAuthenticated } = useAuth();
+  const navigate = useNavigate();
   const [submitting, setSubmitting] = useState(false);
   
   const form = useForm<z.infer<typeof formSchema>>({
@@ -28,11 +29,18 @@ const Login = () => {
     },
   });
   
+  // If already authenticated, redirect to home
+  React.useEffect(() => {
+    if (isAuthenticated) {
+      navigate('/');
+    }
+  }, [isAuthenticated, navigate]);
+  
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
       setSubmitting(true);
       await login(values.email, values.password);
-      // Нет редиректа здесь - он обрабатывается в PublicRoute компоненте
+      navigate('/');
     } catch (error) {
       console.error("Login failed:", error);
       toast({
@@ -44,8 +52,6 @@ const Login = () => {
       setSubmitting(false);
     }
   };
-  
-  const loading = isLoading || submitting;
   
   return (
     <div className="min-h-screen flex items-center justify-center bg-secondary/20 p-4">
@@ -66,7 +72,7 @@ const Login = () => {
                   <FormItem>
                     <FormLabel>Email</FormLabel>
                     <FormControl>
-                      <Input placeholder="example@mail.ru" {...field} disabled={loading} />
+                      <Input placeholder="example@mail.ru" {...field} disabled={submitting} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -79,14 +85,14 @@ const Login = () => {
                   <FormItem>
                     <FormLabel>Пароль</FormLabel>
                     <FormControl>
-                      <Input type="password" placeholder="••••••" {...field} disabled={loading} />
+                      <Input type="password" placeholder="••••••" {...field} disabled={submitting} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-              <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? "Вход..." : "Войти"}
+              <Button type="submit" className="w-full" disabled={submitting}>
+                {submitting ? "Вход..." : "Войти"}
               </Button>
             </form>
           </Form>
