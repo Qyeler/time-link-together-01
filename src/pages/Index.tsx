@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { addMonths, subMonths } from 'date-fns';
 import { MainLayout } from '../components/Layout/MainLayout';
 import { CalendarHeader } from '../components/Calendar/CalendarHeader';
@@ -8,11 +8,24 @@ import { CalendarFilters } from '../components/Calendar/CalendarFilters';
 import { EventDialog } from '../components/Events/EventDialog';
 import { EventDetails } from '../components/Events/EventDetails';
 import { useSchedule } from '../context/ScheduleContext';
+import { useAuth } from '../context/AuthContext';
+import { AuthOverlay } from '../components/Auth/AuthOverlay';
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs';
 
 const Index = () => {
   const { selectedDate, setSelectedDate, viewMode, setViewMode } = useSchedule();
+  const { isAuthenticated } = useAuth();
   const [showEventDialog, setShowEventDialog] = useState(false);
+  const [showAuthOverlay, setShowAuthOverlay] = useState(false);
+  
+  // Check if first visit using localStorage
+  useEffect(() => {
+    const hasVisited = localStorage.getItem('hasVisitedBefore');
+    if (!hasVisited && !isAuthenticated) {
+      setShowAuthOverlay(true);
+      localStorage.setItem('hasVisitedBefore', 'true');
+    }
+  }, [isAuthenticated]);
   
   const handlePrevMonth = () => {
     const newDate = subMonths(selectedDate, 1);
@@ -26,6 +39,10 @@ const Index = () => {
   
   const handleCreateEvent = () => {
     setShowEventDialog(true);
+  };
+
+  const handleCloseAuthOverlay = () => {
+    setShowAuthOverlay(false);
   };
   
   return (
@@ -64,6 +81,11 @@ const Index = () => {
         />
         
         <EventDetails />
+
+        {/* Auth overlay */}
+        {showAuthOverlay && (
+          <AuthOverlay onClose={handleCloseAuthOverlay} />
+        )}
       </div>
     </MainLayout>
   );

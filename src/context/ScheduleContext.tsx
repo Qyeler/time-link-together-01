@@ -173,7 +173,7 @@ interface ScheduleContextType {
   groups: Group[];
   friends: Friend[];
   allUsers: User[];
-  currentUser: User;
+  currentUser: User | null;
   privacySettings: PrivacySettings;
   viewMode: CalendarViewMode;
   filters: CalendarFilters;
@@ -192,6 +192,7 @@ interface ScheduleContextType {
   declineFriendRequest: (userId: string) => void;
   removeFriend: (userId: string) => void;
   updateUserProfile: (user: Partial<User>) => void;
+  isAuthenticated: boolean;
 }
 
 const ScheduleContext = createContext<ScheduleContextType>({
@@ -199,7 +200,7 @@ const ScheduleContext = createContext<ScheduleContextType>({
   groups: [],
   friends: [],
   allUsers: [],
-  currentUser: mockUsers[0],
+  currentUser: null,
   privacySettings: defaultPrivacySettings,
   viewMode: 'month',
   filters: {
@@ -222,6 +223,7 @@ const ScheduleContext = createContext<ScheduleContextType>({
   declineFriendRequest: () => {},
   removeFriend: () => {},
   updateUserProfile: () => {},
+  isAuthenticated: false,
 });
 
 export const useSchedule = () => useContext(ScheduleContext);
@@ -231,7 +233,7 @@ export const ScheduleProvider: React.FC<{children: React.ReactNode}> = ({ childr
   const [events, setEvents] = useState<Event[]>([]);
   const [groups, setGroups] = useState<Group[]>(mockGroups);
   const [friends, setFriends] = useState<Friend[]>(mockFriends);
-  const [currentUser, setCurrentUser] = useState<User>(mockUsers[0]);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [privacySettings, setPrivacySettings] = useState<PrivacySettings>(defaultPrivacySettings);
   const [viewMode, setViewMode] = useState<CalendarViewMode>('month');
   const [filters, setFilters] = useState<CalendarFilters>({
@@ -400,26 +402,10 @@ export const ScheduleProvider: React.FC<{children: React.ReactNode}> = ({ childr
         declineFriendRequest,
         removeFriend,
         updateUserProfile,
+        isAuthenticated,
       }}
     >
-      {isAuthenticated ? children : (
-        <div className="flex flex-col items-center justify-center h-screen bg-gray-100">
-          <div className="bg-white p-8 rounded-lg shadow-md max-w-md w-full">
-            <h1 className="text-2xl font-bold mb-4 text-center">Необходима авторизация</h1>
-            <p className="text-gray-600 mb-6 text-center">
-              Для доступа к функциям приложения необходимо войти в систему или зарегистрироваться.
-            </p>
-            <div className="flex flex-col gap-2">
-              <a href="/login" className="bg-primary text-white py-2 px-4 rounded hover:bg-primary/80 text-center">
-                Войти
-              </a>
-              <a href="/register" className="bg-secondary text-white py-2 px-4 rounded hover:bg-secondary/80 text-center">
-                Зарегистрироваться
-              </a>
-            </div>
-          </div>
-        </div>
-      )}
+      {children}
     </ScheduleContext.Provider>
   );
 };
