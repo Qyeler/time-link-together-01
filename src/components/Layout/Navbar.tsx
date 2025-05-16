@@ -4,7 +4,7 @@ import { Bell, Search, User, LogOut } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { Button } from '../ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { 
   DropdownMenu,
   DropdownMenuContent,
@@ -15,7 +15,8 @@ import {
 } from "../ui/dropdown-menu";
 
 export const Navbar: React.FC = () => {
-  const { isLoading, user, logout } = useAuth();
+  const { isLoading, isAuthenticated, user, logout } = useAuth();
+  const navigate = useNavigate();
 
   return (
     <header className="bg-primary text-primary-foreground p-4 shadow-md">
@@ -43,7 +44,8 @@ export const Navbar: React.FC = () => {
             <div className="flex items-center space-x-4">
               <div className="h-10 w-10 rounded-full bg-white/10 animate-pulse"></div>
             </div>
-          ) : (
+          ) : isAuthenticated ? (
+            // Пользователь авторизован
             <>
               <Button variant="ghost" size="icon" className="relative">
                 <Bell className="h-5 w-5" />
@@ -75,6 +77,15 @@ export const Navbar: React.FC = () => {
                 </DropdownMenuContent>
               </DropdownMenu>
             </>
+          ) : (
+            // Пользователь не авторизован
+            <Button 
+              variant="outline" 
+              onClick={() => navigate('/auth')}
+              className="bg-white/10 text-white hover:bg-white/20"
+            >
+              Войти
+            </Button>
           )}
         </nav>
       </div>

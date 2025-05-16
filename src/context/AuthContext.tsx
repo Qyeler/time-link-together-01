@@ -72,7 +72,7 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
 
   // Effect for auto-login from localStorage
   useEffect(() => {
-    const loadUser = async () => {
+    const loadUser = () => {
       try {
         // First check localStorage
         const storedUser = getUserFromStorage();
@@ -100,18 +100,19 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
       setIsLoading(true);
       
       // Simulate network delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await new Promise(resolve => setTimeout(resolve, 500));
       
       // Mock login - in a real app, this would validate credentials with backend
       let foundUser: User | null = null;
       
-      // For demo, accept any email format that matches our mock users
+      // For testing purposes, accept any user with the correct email format
       if (email.includes('user1')) {
         foundUser = mockUsers['user1'];
       } else if (email.includes('user2')) {
         foundUser = mockUsers['user2'];
       } else {
-        throw new Error('Пользователь не найден');
+        // For demo purposes, allow any email to login as user1
+        foundUser = mockUsers['user1'];
       }
       
       // Save user to state and localStorage
@@ -145,7 +146,7 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
       setIsLoading(true);
       
       // Simulate network delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await new Promise(resolve => setTimeout(resolve, 500));
       
       // Create a new mock user
       const newUserId = `user${Date.now()}`;

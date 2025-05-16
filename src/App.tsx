@@ -3,90 +3,17 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { AuthProvider, useAuth } from "./context/AuthContext";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { AuthProvider } from "./context/AuthContext";
 import { ScheduleProvider } from "./context/ScheduleContext";
 import Index from "./pages/Index";
-import Login from "./pages/Login";
-import Register from "./pages/Register";
+import AuthPage from "./pages/AuthPage";
 import Settings from "./pages/Settings";
 import Friends from "./pages/Friends";
 import NotFound from "./pages/NotFound";
 import Messages from "./pages/Messages";
 
 const queryClient = new QueryClient();
-
-// ProtectedRoute component - redirects to login if not authenticated
-const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  const { isAuthenticated, isLoading } = useAuth();
-  
-  // Show loading while checking authentication status
-  if (isLoading) {
-    return <div className="flex justify-center items-center h-screen">Загрузка...</div>;
-  }
-  
-  // Redirect to login if not authenticated
-  if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
-  }
-  
-  // Show the protected content if authenticated
-  return <>{children}</>;
-};
-
-// AppRoutes component for using authentication context
-const AppRoutes = () => {
-  const { isAuthenticated } = useAuth();
-
-  return (
-    <Routes>
-      {/* Public routes - directly accessible without wrapper */}
-      <Route path="/login" element={<Login />} />
-      <Route path="/register" element={<Register />} />
-      
-      {/* Protected routes */}
-      <Route 
-        path="/" 
-        element={
-          isAuthenticated ? (
-            <ProtectedRoute>
-              <Index />
-            </ProtectedRoute>
-          ) : (
-            <Navigate to="/login" replace />
-          )
-        } 
-      />
-      <Route 
-        path="/settings" 
-        element={
-          <ProtectedRoute>
-            <Settings />
-          </ProtectedRoute>
-        } 
-      />
-      <Route 
-        path="/friends" 
-        element={
-          <ProtectedRoute>
-            <Friends />
-          </ProtectedRoute>
-        } 
-      />
-      <Route 
-        path="/messages" 
-        element={
-          <ProtectedRoute>
-            <Messages />
-          </ProtectedRoute>
-        } 
-      />
-      
-      {/* Route for handling non-existent paths */}
-      <Route path="*" element={<NotFound />} />
-    </Routes>
-  );
-};
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -96,7 +23,14 @@ const App = () => (
           <Toaster />
           <Sonner />
           <BrowserRouter>
-            <AppRoutes />
+            <Routes>
+              <Route path="/auth" element={<AuthPage />} />
+              <Route path="/" element={<Index />} />
+              <Route path="/settings" element={<Settings />} />
+              <Route path="/friends" element={<Friends />} />
+              <Route path="/messages" element={<Messages />} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
           </BrowserRouter>
         </TooltipProvider>
       </ScheduleProvider>
