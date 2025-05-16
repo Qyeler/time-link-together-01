@@ -9,6 +9,7 @@ import { Button } from "../components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "../components/ui/form";
 import { Input } from "../components/ui/input";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "../components/ui/card";
+import { toast } from "@/hooks/use-toast";
 
 const formSchema = z.object({
   email: z.string().email("Неверный формат email"),
@@ -32,12 +33,25 @@ const Login = () => {
     try {
       setLoading(true);
       await login(values.email, values.password);
-      // Wait a moment to show success message
+      
+      // Show success message then redirect after a delay
+      toast({
+        title: "Успешный вход",
+        description: "Перенаправление на главную страницу...",
+      });
+      
+      // Set a timeout to redirect after the toast is displayed
       setTimeout(() => {
         navigate('/');
-      }, 1500);
+      }, 2000);
     } catch (error) {
       console.error("Login failed:", error);
+      toast({
+        title: "Ошибка входа",
+        description: "Проверьте ваши учетные данные и попробуйте снова",
+        variant: "destructive",
+      });
+    } finally {
       setLoading(false);
     }
   };

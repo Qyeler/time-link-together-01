@@ -1,10 +1,18 @@
 
 import React from 'react';
-import { Bell, Search, User } from 'lucide-react';
+import { Bell, Search, User, LogOut } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { Button } from '../ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { Link } from 'react-router-dom';
+import { 
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger
+} from "../ui/dropdown-menu";
 
 export const Navbar: React.FC = () => {
   const { isAuthenticated, user, logout } = useAuth();
@@ -13,7 +21,9 @@ export const Navbar: React.FC = () => {
     <header className="bg-primary text-primary-foreground p-4 shadow-md">
       <div className="container mx-auto flex items-center justify-between">
         <div className="flex items-center space-x-2">
-          <h1 className="text-2xl font-bold">Schedle</h1>
+          <Link to="/">
+            <h1 className="text-2xl font-bold">Schedle</h1>
+          </Link>
         </div>
 
         <div className="flex-1 max-w-md mx-4">
@@ -34,12 +44,31 @@ export const Navbar: React.FC = () => {
                 <Bell className="h-5 w-5" />
                 <span className="absolute top-0 right-0 flex h-2 w-2 items-center justify-center rounded-full bg-destructive text-destructive-foreground text-xs" />
               </Button>
-              <div className="flex items-center space-x-2">
-                <Avatar>
-                  <AvatarImage src={user?.avatar} alt={user?.name} />
-                  <AvatarFallback>{user?.name?.charAt(0) || 'U'}</AvatarFallback>
-                </Avatar>
-              </div>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="relative p-0" size="icon">
+                    <Avatar>
+                      <AvatarImage src={user?.avatar} alt={user?.name} />
+                      <AvatarFallback>{user?.name?.charAt(0) || 'U'}</AvatarFallback>
+                    </Avatar>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuLabel>{user?.name || 'Пользователь'}</DropdownMenuLabel>
+                  <DropdownMenuLabel className="text-xs text-muted-foreground">{user?.email}</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <Link to="/settings">
+                    <DropdownMenuItem>
+                      <User className="mr-2 h-4 w-4" />
+                      <span>Профиль</span>
+                    </DropdownMenuItem>
+                  </Link>
+                  <DropdownMenuItem onClick={logout}>
+                    <LogOut className="mr-2 h-4 w-4" />
+                    <span>Выйти</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </>
           ) : (
             <>

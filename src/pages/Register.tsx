@@ -9,6 +9,7 @@ import { Button } from "../components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "../components/ui/form";
 import { Input } from "../components/ui/input";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "../components/ui/card";
+import { toast } from "@/hooks/use-toast";
 
 const formSchema = z.object({
   name: z.string().min(2, "Имя должно содержать не менее 2 символов"),
@@ -39,12 +40,25 @@ const Register = () => {
     try {
       setLoading(true);
       await register(values.name, values.email, values.password);
-      // Wait a moment to show success message
+      
+      // Show success message then redirect after a delay
+      toast({
+        title: "Успешная регистрация",
+        description: "Перенаправление на главную страницу...",
+      });
+      
+      // Set a timeout to redirect after the toast is displayed
       setTimeout(() => {
         navigate('/');
-      }, 1500);
+      }, 2000);
     } catch (error) {
       console.error("Registration failed:", error);
+      toast({
+        title: "Ошибка регистрации",
+        description: "Произошла ошибка при регистрации. Пожалуйста, попробуйте снова.",
+        variant: "destructive",
+      });
+    } finally {
       setLoading(false);
     }
   };
