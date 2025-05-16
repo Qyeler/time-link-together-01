@@ -9,15 +9,17 @@ import { EventDialog } from '../components/Events/EventDialog';
 import { useSchedule } from '../context/ScheduleContext';
 
 const Index = () => {
-  const { setSelectedDate } = useSchedule();
+  const { selectedDate, setSelectedDate } = useSchedule();
   const [showEventDialog, setShowEventDialog] = useState(false);
   
   const handlePrevMonth = () => {
-    setSelectedDate(prevDate => subMonths(prevDate, 1));
+    const newDate = subMonths(selectedDate, 1);
+    setSelectedDate(newDate);
   };
   
   const handleNextMonth = () => {
-    setSelectedDate(prevDate => addMonths(prevDate, 1));
+    const newDate = addMonths(selectedDate, 1);
+    setSelectedDate(newDate);
   };
   
   const handleCreateEvent = () => {
