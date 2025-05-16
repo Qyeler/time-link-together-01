@@ -16,6 +16,7 @@ export const AuthOverlay: React.FC<AuthOverlayProps> = ({ onClose }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   
@@ -76,7 +77,9 @@ export const AuthOverlay: React.FC<AuthOverlayProps> = ({ onClose }) => {
     
     try {
       setIsSubmitting(true);
-      await register(name, email, password);
+      // Combine first and last name
+      const fullName = lastName ? `${name} ${lastName}` : name;
+      await register(fullName, email, password);
       onClose();
       toast({ 
         title: "Регистрация выполнена", 
@@ -109,10 +112,16 @@ export const AuthOverlay: React.FC<AuthOverlayProps> = ({ onClose }) => {
           <>
             <h2 className="text-2xl font-semibold text-center mb-6">Вход</h2>
             <form onSubmit={handleLogin} className="space-y-4">
+              <div className="text-sm text-gray-600 mb-4">
+                Доступные учетные записи:<br />
+                Логин: user1@example.com, Пароль: user1<br />
+                Логин: user2@example.com, Пароль: user2<br />
+                И т.д. вплоть до user10
+              </div>
               <div>
                 <Input 
-                  type="email" 
-                  placeholder="Введите ваш email..." 
+                  type="text" 
+                  placeholder="Email или логин (например, user1)" 
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="w-full border rounded-md px-4 py-2"
@@ -165,6 +174,16 @@ export const AuthOverlay: React.FC<AuthOverlayProps> = ({ onClose }) => {
               </div>
               <div>
                 <Input 
+                  type="text" 
+                  placeholder="Введите вашу фамилию (необязательно)..." 
+                  value={lastName}
+                  onChange={(e) => setLastName(e.target.value)}
+                  className="w-full border rounded-md px-4 py-2"
+                  disabled={isSubmitting}
+                />
+              </div>
+              <div>
+                <Input 
                   type="email" 
                   placeholder="Введите ваш e-mail..." 
                   value={email}
@@ -179,6 +198,16 @@ export const AuthOverlay: React.FC<AuthOverlayProps> = ({ onClose }) => {
                   placeholder="Придумайте пароль..." 
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
+                  className="w-full border rounded-md px-4 py-2"
+                  disabled={isSubmitting}
+                />
+              </div>
+              <div>
+                <Input 
+                  type="password" 
+                  placeholder="Подтвердите пароль..." 
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
                   className="w-full border rounded-md px-4 py-2"
                   disabled={isSubmitting}
                 />

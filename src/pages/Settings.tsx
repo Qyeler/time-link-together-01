@@ -1,287 +1,206 @@
 
-import React from 'react';
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-import { z } from "zod";
-import { useAuth } from "../context/AuthContext";
-import { Button } from "../components/ui/button";
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "../components/ui/form";
-import { Input } from "../components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
-import { Card } from "../components/ui/card";
-import { Separator } from "../components/ui/separator";
-import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/avatar";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs";
-import { MainLayout } from "../components/Layout/MainLayout";
-import { toast } from "@/hooks/use-toast";
-
-const profileFormSchema = z.object({
-  name: z.string().min(2, {
-    message: "Имя должно содержать не менее 2 символов",
-  }),
-  email: z
-    .string()
-    .min(1, { message: "Email обязателен" })
-    .email("Неверный формат email"),
-});
-
-const privacyFormSchema = z.object({
-  whoCanSeeSchedule: z.enum(["all", "friends", "none"]),
-  whoCanInvite: z.enum(["all", "friends", "none"]),
-  whoCanMessage: z.enum(["all", "friends", "none"]),
-  whoCanSeeProfile: z.enum(["all", "friends", "none"]),
-});
+import React, { useState } from 'react';
+import { MainLayout } from '../components/Layout/MainLayout';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '../components/ui/card';
+import { Input } from '../components/ui/input';
+import { Button } from '../components/ui/button';
+import { Separator } from '../components/ui/separator';
+import { Avatar, AvatarFallback, AvatarImage } from '../components/ui/avatar';
+import { useAuth } from '../context/AuthContext';
+import { toast } from "../hooks/use-toast";
+import { LogOut } from 'lucide-react';
 
 const Settings = () => {
-  const { user } = useAuth();
+  const { user, updateProfile, logout } = useAuth();
   
-  const profileForm = useForm<z.infer<typeof profileFormSchema>>({
-    resolver: zodResolver(profileFormSchema),
-    defaultValues: {
-      name: user?.name || "",
-      email: user?.email || "",
-    },
-  });
+  const [name, setName] = useState(user?.name || '');
+  const [lastName, setLastName] = useState('');
+  const [email, setEmail] = useState(user?.email || '');
+  const [isSubmitting, setIsSubmitting] = useState(false);
   
-  const privacyForm = useForm<z.infer<typeof privacyFormSchema>>({
-    resolver: zodResolver(privacyFormSchema),
-    defaultValues: {
-      whoCanSeeSchedule: "friends",
-      whoCanInvite: "friends",
-      whoCanMessage: "all",
-      whoCanSeeProfile: "all",
-    },
-  });
+  // Split the name into first and last name if available
+  React.useEffect(() => {
+    if (user?.name) {
+      const nameParts = user.name.split(' ');
+      if (nameParts.length > 1) {
+        setName(nameParts[0]);
+        setLastName(nameParts.slice(1).join(' '));
+      } else {
+        setName(user.name);
+      }
+    }
+  }, [user]);
   
-  const onProfileSubmit = (data: z.infer<typeof profileFormSchema>) => {
+  const handleUpdateProfile = () => {
+    if (!name) {
+      toast({
+        title: "Ошибка",
+        description: "Имя не может быть пустым",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    setIsSubmitting(true);
+    
+    // Combine first and last name
+    const fullName = lastName ? `${name} ${lastName}` : name;
+    
+    updateProfile({
+      name: fullName,
+      email: email
+    });
+    
     toast({
       title: "Профиль обновлен",
-      description: "Ваши данные профиля были успешно обновлены.",
+      description: "Ваши данные были успешно обновлены"
     });
+    
+    setIsSubmitting(false);
   };
   
-  const onPrivacySubmit = (data: z.infer<typeof privacyFormSchema>) => {
+  const handleLogout = () => {
+    logout();
+    
     toast({
-      title: "Настройки приватности обновлены",
-      description: "Ваши настройки приватности были успешно обновлены.",
+      title: "Выход выполнен",
+      description: "Вы вышли из системы"
     });
   };
   
   return (
     <MainLayout>
-      <div className="container py-6">
-        <div className="space-y-6">
-          <div>
-            <h1 className="text-3xl font-bold">Настройки</h1>
-            <p className="text-muted-foreground">
-              Управляйте настройками своего аккаунта и приватности.
-            </p>
+      <div className="container mx-auto max-w-3xl py-6">
+        <h1 className="text-3xl font-bold mb-8">Настройки профиля</h1>
+        
+        <div className="grid md:grid-cols-3 gap-8">
+          <div className="md:col-span-1">
+            <Card>
+              <CardHeader>
+                <CardTitle>Аватар</CardTitle>
+                <CardDescription>
+                  Ваше изображение профиля
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="flex flex-col items-center">
+                <Avatar className="h-24 w-24">
+                  <AvatarImage src={user?.avatar} />
+                  <AvatarFallback>{user?.name?.charAt(0) || 'U'}</AvatarFallback>
+                </Avatar>
+                <Button className="mt-4" variant="outline">
+                  Изменить фото
+                </Button>
+              </CardContent>
+            </Card>
           </div>
           
-          <Tabs defaultValue="profile" className="space-y-6">
-            <TabsList>
-              <TabsTrigger value="profile">Профиль</TabsTrigger>
-              <TabsTrigger value="privacy">Приватность</TabsTrigger>
-              <TabsTrigger value="notifications">Уведомления</TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="profile" className="space-y-6">
-              <Card className="p-6">
-                <div className="flex flex-col sm:flex-row gap-6">
-                  <div className="flex flex-col items-center space-y-4">
-                    <Avatar className="w-24 h-24">
-                      <AvatarImage src={user?.avatar} alt={user?.name} />
-                      <AvatarFallback>{user?.name?.charAt(0) || 'U'}</AvatarFallback>
-                    </Avatar>
-                    <Button variant="outline" size="sm">
-                      Изменить фото
-                    </Button>
+          <div className="md:col-span-2">
+            <Card>
+              <CardHeader>
+                <CardTitle>Основная информация</CardTitle>
+                <CardDescription>
+                  Обновите вашу личную информацию
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label htmlFor="firstName" className="text-sm font-medium">Имя</label>
+                    <Input 
+                      id="firstName" 
+                      value={name} 
+                      onChange={(e) => setName(e.target.value)}
+                      placeholder="Введите ваше имя" 
+                    />
                   </div>
-                  
-                  <div className="flex-1">
-                    <Form {...profileForm}>
-                      <form onSubmit={profileForm.handleSubmit(onProfileSubmit)} className="space-y-4">
-                        <FormField
-                          control={profileForm.control}
-                          name="name"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Имя</FormLabel>
-                              <FormControl>
-                                <Input placeholder="Иван Иванов" {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        <FormField
-                          control={profileForm.control}
-                          name="email"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Email</FormLabel>
-                              <FormControl>
-                                <Input placeholder="example@mail.ru" {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        <Button type="submit">Сохранить</Button>
-                      </form>
-                    </Form>
+                  <div className="space-y-2">
+                    <label htmlFor="lastName" className="text-sm font-medium">Фамилия</label>
+                    <Input 
+                      id="lastName" 
+                      value={lastName}
+                      onChange={(e) => setLastName(e.target.value)}
+                      placeholder="Введите вашу фамилию" 
+                    />
                   </div>
                 </div>
-              </Card>
-              
-              <Card className="p-6">
-                <h2 className="text-xl font-semibold mb-4">Аккаунт</h2>
+                
+                <div className="space-y-2">
+                  <label htmlFor="email" className="text-sm font-medium">Email</label>
+                  <Input 
+                    id="email" 
+                    type="email" 
+                    value={email} 
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="your@email.com" 
+                    disabled 
+                  />
+                  <p className="text-sm text-muted-foreground">
+                    Email не может быть изменен.
+                  </p>
+                </div>
+              </CardContent>
+              <CardFooter className="flex justify-end">
+                <Button 
+                  onClick={handleUpdateProfile}
+                  disabled={isSubmitting}
+                >
+                  Сохранить изменения
+                </Button>
+              </CardFooter>
+            </Card>
+            
+            <Card className="mt-6">
+              <CardHeader>
+                <CardTitle>Аккаунт</CardTitle>
+                <CardDescription>
+                  Управление вашим аккаунтом
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
                 <div className="space-y-4">
-                  <div>
-                    <h3 className="font-medium">Сменить пароль</h3>
-                    <p className="text-muted-foreground text-sm">Обновите свой пароль.</p>
-                    <Button variant="outline" className="mt-2">
-                      Сменить пароль
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <h3 className="text-sm font-medium">Выход из аккаунта</h3>
+                      <p className="text-sm text-muted-foreground">
+                        Выйти из текущего аккаунта
+                      </p>
+                    </div>
+                    <Button 
+                      variant="outline" 
+                      onClick={handleLogout}
+                      className="text-destructive hover:bg-destructive/10"
+                    >
+                      <LogOut className="mr-2 h-4 w-4" />
+                      Выйти
                     </Button>
                   </div>
                   
                   <Separator />
                   
-                  <div>
-                    <h3 className="font-medium text-destructive">Удалить аккаунт</h3>
-                    <p className="text-muted-foreground text-sm">
-                      Удаление аккаунта приведет к безвозвратной потере всех ваших данных.
-                    </p>
-                    <Button variant="destructive" className="mt-2">
-                      Удалить аккаунт
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <h3 className="text-sm font-medium">Данные приложения</h3>
+                      <p className="text-sm text-muted-foreground">
+                        Удалить все локальные данные приложения
+                      </p>
+                    </div>
+                    <Button 
+                      variant="destructive"
+                      onClick={() => {
+                        localStorage.clear();
+                        toast({
+                          title: "Данные очищены",
+                          description: "Все локальные данные приложения удалены"
+                        });
+                      }}
+                    >
+                      Очистить данные
                     </Button>
                   </div>
                 </div>
-              </Card>
-            </TabsContent>
-            
-            <TabsContent value="privacy" className="space-y-6">
-              <Card className="p-6">
-                <h2 className="text-xl font-semibold mb-4">Настройки приватности</h2>
-                <Form {...privacyForm}>
-                  <form onSubmit={privacyForm.handleSubmit(onPrivacySubmit)} className="space-y-4">
-                    <FormField
-                      control={privacyForm.control}
-                      name="whoCanSeeSchedule"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Кто может видеть мое расписание</FormLabel>
-                          <Select onValueChange={field.onChange} defaultValue={field.value}>
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Выберите" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value="all">Все</SelectItem>
-                              <SelectItem value="friends">Только друзья</SelectItem>
-                              <SelectItem value="none">Никто</SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <FormDescription>
-                            Определяет, кто может видеть ваше расписание.
-                          </FormDescription>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <FormField
-                      control={privacyForm.control}
-                      name="whoCanInvite"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Кто может приглашать меня на мероприятия</FormLabel>
-                          <Select onValueChange={field.onChange} defaultValue={field.value}>
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Выберите" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value="all">Все</SelectItem>
-                              <SelectItem value="friends">Только друзья</SelectItem>
-                              <SelectItem value="none">Никто</SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <FormDescription>
-                            Определяет, кто может приглашать вас на мероприятия.
-                          </FormDescription>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <FormField
-                      control={privacyForm.control}
-                      name="whoCanMessage"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Кто может отправлять мне сообщения</FormLabel>
-                          <Select onValueChange={field.onChange} defaultValue={field.value}>
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Выберите" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value="all">Все</SelectItem>
-                              <SelectItem value="friends">Только друзья</SelectItem>
-                              <SelectItem value="none">Никто</SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <FormDescription>
-                            Определяет, кто может отправлять вам сообщения.
-                          </FormDescription>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <FormField
-                      control={privacyForm.control}
-                      name="whoCanSeeProfile"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Кто может видеть мой профиль</FormLabel>
-                          <Select onValueChange={field.onChange} defaultValue={field.value}>
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Выберите" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value="all">Все</SelectItem>
-                              <SelectItem value="friends">Только друзья</SelectItem>
-                              <SelectItem value="none">Никто</SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <FormDescription>
-                            Определяет, кто может видеть ваш профиль и фото.
-                          </FormDescription>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <Button type="submit">Сохранить</Button>
-                  </form>
-                </Form>
-              </Card>
-            </TabsContent>
-            
-            <TabsContent value="notifications" className="space-y-6">
-              <Card className="p-6">
-                <h2 className="text-xl font-semibold mb-4">Настройки уведомлений</h2>
-                <p>В разработке...</p>
-              </Card>
-            </TabsContent>
-          </Tabs>
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </div>
     </MainLayout>

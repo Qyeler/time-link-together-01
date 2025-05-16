@@ -49,21 +49,24 @@ const removeUserFromStorage = () => {
   localStorage.removeItem('user');
 };
 
-// Mock users for demo
-const mockUsers: Record<string, User> = {
-  'user1': {
-    id: 'user1',
-    name: 'User1',
-    email: 'user1@example.com',
-    avatar: 'https://i.pravatar.cc/150?img=1',
-  },
-  'user2': {
-    id: 'user2',
-    name: 'User2',
-    email: 'user2@example.com',
-    avatar: 'https://i.pravatar.cc/150?img=2',
-  },
+// Generate 10 mock users for the application
+const generateMockUsers = () => {
+  const users: Record<string, User> = {};
+  
+  for (let i = 1; i <= 10; i++) {
+    users[`user${i}`] = {
+      id: `user${i}`,
+      name: `Пользователь ${i}`,
+      email: `user${i}@example.com`,
+      avatar: `https://i.pravatar.cc/150?img=${i}`,
+    };
+  }
+  
+  return users;
 };
+
+// Mock users for demo
+const mockUsers = generateMockUsers();
 
 export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
@@ -102,18 +105,37 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
       // Simulate network delay
       await new Promise(resolve => setTimeout(resolve, 500));
       
-      // Mock login - in a real app, this would validate credentials with backend
-      let foundUser: User | null = null;
-      
-      // For testing purposes, accept any user with the correct email format
-      if (email.includes('user1')) {
-        foundUser = mockUsers['user1'];
-      } else if (email.includes('user2')) {
-        foundUser = mockUsers['user2'];
-      } else {
-        // For demo purposes, allow any email to login as user1
-        foundUser = mockUsers['user1'];
+      // Check if input is just 'userX' format
+      let loginInput = email;
+      if (!email.includes('@')) {
+        loginInput = `${email}@example.com`;
       }
+      
+      // Find user by email
+      let userId = '';
+      for (const key in mockUsers) {
+        if (mockUsers[key].email.toLowerCase() === loginInput.toLowerCase()) {
+          userId = key;
+          break;
+        }
+      }
+      
+      // If user wasn't found by email, try direct userX format
+      if (!userId && email.startsWith('user') && /^user\d+$/.test(email)) {
+        userId = email;
+      }
+      
+      if (!userId || !mockUsers[userId]) {
+        throw new Error('Пользователь не найден');
+      }
+      
+      // In a real app, this would validate password with backend
+      // For demo, we're just checking if password matches userId
+      if (password !== userId) {
+        throw new Error('Неверный пароль');
+      }
+      
+      const foundUser = mockUsers[userId];
       
       // Save user to state and localStorage
       setUser(foundUser);
@@ -148,6 +170,13 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
       // Simulate network delay
       await new Promise(resolve => setTimeout(resolve, 500));
       
+      // Check if email already exists
+      for (const key in mockUsers) {
+        if (mockUsers[key].email.toLowerCase() === email.toLowerCase()) {
+          throw new Error('Пользователь с таким email уже существует');
+        }
+      }
+      
       // Create a new mock user
       const newUserId = `user${Date.now()}`;
       const mockUser: User = {
@@ -156,6 +185,9 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
         email: email,
         avatar: `https://i.pravatar.cc/150?img=${Math.floor(Math.random() * 70)}`,
       };
+      
+      // Add to mock users
+      mockUsers[newUserId] = mockUser;
       
       // Save user to state and localStorage
       setUser(mockUser);
@@ -173,7 +205,7 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
       
       toast({
         title: "Ошибка регистрации",
-        description: "Произошла ошибка при регистрации. Пожалуйста, попробуйте снова.",
+        description: error instanceof Error ? error.message : "Произошла ошибка при регистрации. Пожалуйста, попробуйте снова.",
         variant: "destructive",
       });
       
@@ -205,6 +237,11 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
       setUser(updatedUser);
       setIsAuthenticated(true);
       saveUserToStorage(updatedUser);
+      
+      // Also update in mockUsers
+      if (mockUsers[user.id]) {
+        mockUsers[user.id] = updatedUser;
+      }
       
       toast({
         title: "Профиль обновлен",

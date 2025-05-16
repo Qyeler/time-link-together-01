@@ -1,7 +1,6 @@
-
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Calendar, Users, MessageCircle, UserPlus, Settings, PlusCircle } from 'lucide-react';
+import { Calendar, Users, MessageCircle, UserPlus, Settings, PlusCircle, Search } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { Button } from '../ui/button';
 import { Separator } from '../ui/separator';
@@ -13,7 +12,7 @@ import { Event, Friend } from '../../types';
 export const Sidebar: React.FC = () => {
   const location = useLocation();
   const { friends, events } = useSchedule();
-  const { user, switchUser } = useAuth();
+  const { user, logout } = useAuth();
   
   // Filter accepted friends
   const acceptedFriends = friends.filter((friend) => friend.status === 'accepted');
@@ -26,15 +25,6 @@ export const Sidebar: React.FC = () => {
   
   const [activeTab, setActiveTab] = useState('friends');
   
-  const handleSwitchUser = () => {
-    // Toggle between user1 and user2 for demo purposes
-    if (user?.id === 'user1') {
-      switchUser('user2');
-    } else {
-      switchUser('user1');
-    }
-  };
-
   return (
     <aside className="w-64 bg-sidebar h-full flex flex-col border-r border-sidebar-border">
       <div className="flex p-2 space-x-1 border-b border-sidebar-border">
@@ -74,10 +64,11 @@ export const Sidebar: React.FC = () => {
         <div className="flex-1 overflow-y-auto p-2">
           <div className="mb-2">
             <div className="relative">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground/70" />
               <input
                 type="search"
-                placeholder="Поиск в друзья"
-                className="w-full rounded-md border border-sidebar-border bg-sidebar-accent/50 py-2 px-3 text-sm text-sidebar-foreground placeholder:text-sidebar-foreground/70 focus:outline-none focus:ring-1 focus:ring-sidebar-ring"
+                placeholder="Поиск в друзьях"
+                className="w-full rounded-md border border-sidebar-border bg-sidebar-accent/50 pl-9 py-2 px-3 text-sm text-sidebar-foreground placeholder:text-sidebar-foreground/70 focus:outline-none focus:ring-1 focus:ring-sidebar-ring"
               />
             </div>
           </div>
@@ -181,7 +172,7 @@ export const Sidebar: React.FC = () => {
         </div>
       )}
 
-      <div className="p-2 border-t border-sidebar-border">
+      <div className="p-2 border-t border-sidebar-border mt-auto">
         <div className="flex items-center justify-around">
           <Link to="/" className={`sidebar-menu-item ${location.pathname === '/' ? 'text-primary' : ''}`}>
             <Calendar className="h-5 w-5" />
@@ -197,15 +188,15 @@ export const Sidebar: React.FC = () => {
           </Link>
         </div>
         
-        {/* For demo: Button to switch between user1 and user2 */}
+        {/* For demo: Button to logout */}
         <div className="mt-2">
           <Button 
             variant="outline" 
             size="sm" 
             className="w-full text-xs"
-            onClick={handleSwitchUser}
+            onClick={logout}
           >
-            Переключиться на {user?.id === 'user1' ? 'User2' : 'User1'}
+            Выйти из аккаунта
           </Button>
         </div>
       </div>

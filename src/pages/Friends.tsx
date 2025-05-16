@@ -1,200 +1,289 @@
 
 import React, { useState } from 'react';
 import { MainLayout } from '../components/Layout/MainLayout';
-import { useSchedule } from '../context/ScheduleContext';
-import { Button } from '../components/ui/button';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '../components/ui/card';
 import { Input } from '../components/ui/input';
-import { Card, CardContent } from '../components/ui/card';
+import { Button } from '../components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { Avatar, AvatarFallback, AvatarImage } from '../components/ui/avatar';
 import { Separator } from '../components/ui/separator';
-import { UserPlus, UserMinus, UserX, User, Check, X } from 'lucide-react';
-import { Friend, User as UserType } from '../types';
+import { Search, UserPlus, Check, X } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
+import { useSchedule } from '../context/ScheduleContext';
+import { Friend } from '../types';
+import { toast } from "@/hooks/use-toast";
 
 const Friends = () => {
-  const { 
-    friends, 
-    allUsers, 
-    currentUser, 
-    sendFriendRequest, 
-    acceptFriendRequest, 
-    declineFriendRequest, 
-    removeFriend 
-  } = useSchedule();
+  const { user, isAuthenticated } = useAuth();
+  const { friends, addFriend, acceptFriend, rejectFriend, removeFriend } = useSchedule();
   
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isSearching, setIsSearching] = useState(false);
   
-  // Фильтруем друзей по статусу
-  const acceptedFriends = friends.filter(friend => friend.status === 'accepted');
-  const pendingRequests = friends.filter(friend => friend.status === 'pending');
+  // Filter friends by status
+  const acceptedFriends = friends.filter((friend) => friend.status === 'accepted');
+  const pendingFriends = friends.filter((friend) => friend.status === 'pending');
   
-  // Фильтруем всех пользователей для поиска
-  const filteredUsers = allUsers.filter(user => {
-    // Не показываем текущего пользователя и уже добавленных друзей
-    if (user.id === currentUser?.id || friends.some(f => f.id === user.id)) {
-      return false;
+  // Search mock users based on query
+  const handleSearch = () => {
+    if (!searchQuery.trim()) {
+      toast({
+        title: "Пустой запрос",
+        description: "Введите имя или email для поиска",
+        variant: "destructive"
+      });
+      return;
     }
     
-    // Поиск по имени или email
-    return (
-      user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchTerm.toLowerCase())
+    setIsSearching(true);
+    
+    // In a real app, this would be an API call
+    // For this demo, we're simulating a search with a delay
+    setTimeout(() => {
+      setIsSearching(false);
+    }, 500);
+  };
+  
+  // Search results - simulated for demo
+  const searchResults = React.useMemo(() => {
+    if (!searchQuery.trim()) return [];
+    
+    // Access mock users from context
+    const mockUsers: Record<string, any> = {};
+    for (let i = 1; i <= 10; i++) {
+      mockUsers[`user${i}`] = {
+        id: `user${i}`,
+        name: `Пользователь ${i}`,
+        email: `user${i}@example.com`,
+        avatar: `https://i.pravatar.cc/150?img=${i}`,
+      };
+    }
+    
+    // Filter out current user
+    if (user) {
+      delete mockUsers[user.id];
+    }
+    
+    // Filter based on search query (name or email)
+    const results = Object.values(mockUsers).filter(mockUser => 
+      mockUser.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+      mockUser.email.toLowerCase().includes(searchQuery.toLowerCase())
     );
-  });
-
-  const renderFriendCard = (friend: Friend) => (
-    <Card key={friend.id} className="mb-4">
-      <CardContent className="p-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Avatar>
-              <AvatarImage src={friend.avatar} />
-              <AvatarFallback>{friend.name.charAt(0)}</AvatarFallback>
-            </Avatar>
-            <div>
-              <div className="font-medium">{friend.name}</div>
-              <div className="text-sm text-muted-foreground">{friend.email}</div>
-            </div>
-          </div>
-          
-          <Button 
-            variant="outline" 
-            size="sm"
-            onClick={() => removeFriend(friend.id)}
-          >
-            <UserMinus className="h-4 w-4 mr-2" />
-            Удалить
-          </Button>
+    
+    // Filter out users who are already friends or have pending requests
+    return results.filter(result => 
+      !friends.some(friend => friend.id === result.id)
+    );
+  }, [searchQuery, friends, user]);
+  
+  const handleAddFriend = (friendToAdd: Friend) => {
+    addFriend(friendToAdd);
+    
+    toast({
+      title: "Заявка отправлена",
+      description: `Заявка дружбы отправлена пользователю ${friendToAdd.name}`
+    });
+  };
+  
+  const handleAcceptFriend = (friendId: string) => {
+    acceptFriend(friendId);
+    
+    toast({
+      title: "Заявка принята",
+      description: "Пользователь добавлен в друзья"
+    });
+  };
+  
+  const handleRejectFriend = (friendId: string) => {
+    rejectFriend(friendId);
+    
+    toast({
+      title: "Заявка отклонена",
+      description: "Заявка на дружбу отклонена"
+    });
+  };
+  
+  const handleRemoveFriend = (friendId: string) => {
+    removeFriend(friendId);
+    
+    toast({
+      title: "Друг удален",
+      description: "Пользователь удален из списка друзей"
+    });
+  };
+  
+  if (!isAuthenticated) {
+    return (
+      <MainLayout>
+        <div className="container mx-auto max-w-3xl py-12 text-center">
+          <h2 className="text-2xl font-bold mb-4">Требуется авторизация</h2>
+          <p className="mb-6">
+            Для доступа к этой странице необходимо войти в аккаунт.
+          </p>
+          <Button>Войти</Button>
         </div>
-      </CardContent>
-    </Card>
-  );
-
-  const renderRequestCard = (request: Friend) => (
-    <Card key={request.id} className="mb-4">
-      <CardContent className="p-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Avatar>
-              <AvatarImage src={request.avatar} />
-              <AvatarFallback>{request.name.charAt(0)}</AvatarFallback>
-            </Avatar>
-            <div>
-              <div className="font-medium">{request.name}</div>
-              <div className="text-sm text-muted-foreground">{request.email}</div>
-            </div>
-          </div>
-          
-          <div className="flex gap-2">
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={() => acceptFriendRequest(request.id)}
-            >
-              <Check className="h-4 w-4 mr-2" />
-              Принять
-            </Button>
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={() => declineFriendRequest(request.id)}
-            >
-              <X className="h-4 w-4 mr-2" />
-              Отклонить
-            </Button>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  );
-
-  const renderUserCard = (user: UserType) => (
-    <Card key={user.id} className="mb-4">
-      <CardContent className="p-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Avatar>
-              <AvatarImage src={user.avatar} />
-              <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
-            </Avatar>
-            <div>
-              <div className="font-medium">{user.name}</div>
-              <div className="text-sm text-muted-foreground">{user.email}</div>
-            </div>
-          </div>
-          
-          <Button 
-            variant="outline" 
-            size="sm"
-            onClick={() => sendFriendRequest(user.id)}
-          >
-            <UserPlus className="h-4 w-4 mr-2" />
-            Добавить
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
-  );
-
+      </MainLayout>
+    );
+  }
+  
   return (
     <MainLayout>
-      <div className="container py-6">
-        <h1 className="text-3xl font-bold mb-6">Друзья</h1>
+      <div className="container mx-auto max-w-4xl py-6">
+        <h1 className="text-3xl font-bold mb-8">Друзья и контакты</h1>
         
-        <div className="mb-6">
-          <Input 
-            placeholder="Найти пользователей..." 
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="max-w-md"
-          />
-        </div>
-
+        <Card className="mb-8">
+          <CardHeader>
+            <CardTitle>Найти друзей</CardTitle>
+            <CardDescription>
+              Поиск по имени или email
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex gap-4">
+              <div className="relative flex-1">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Введите имя или email..."
+                  className="pl-9 pr-4"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                />
+              </div>
+              <Button onClick={handleSearch} disabled={isSearching}>
+                {isSearching ? "Поиск..." : "Найти"}
+              </Button>
+            </div>
+            
+            {searchResults.length > 0 && (
+              <div className="mt-6">
+                <h3 className="font-medium mb-3">Результаты поиска</h3>
+                <div className="space-y-3">
+                  {searchResults.map((result) => (
+                    <div key={result.id} className="flex items-center justify-between bg-secondary/20 p-3 rounded-lg">
+                      <div className="flex items-center space-x-3">
+                        <Avatar>
+                          <AvatarImage src={result.avatar} />
+                          <AvatarFallback>{result.name.charAt(0)}</AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <div className="font-medium">{result.name}</div>
+                          <div className="text-sm text-muted-foreground">{result.email}</div>
+                        </div>
+                      </div>
+                      <Button 
+                        size="sm" 
+                        onClick={() => handleAddFriend(result)}
+                      >
+                        <UserPlus className="mr-2 h-4 w-4" />
+                        Добавить
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+        
         <Tabs defaultValue="friends">
-          <TabsList>
-            <TabsTrigger value="friends">
-              Друзья ({acceptedFriends.length})
-            </TabsTrigger>
-            <TabsTrigger value="requests">
-              Запросы ({pendingRequests.length})
-            </TabsTrigger>
-            <TabsTrigger value="find">
-              Найти друзей
-            </TabsTrigger>
+          <TabsList className="mb-6">
+            <TabsTrigger value="friends">Друзья ({acceptedFriends.length})</TabsTrigger>
+            <TabsTrigger value="requests">Заявки ({pendingFriends.length})</TabsTrigger>
           </TabsList>
           
-          <TabsContent value="friends" className="mt-4">
-            {acceptedFriends.length > 0 ? (
-              acceptedFriends.map(renderFriendCard)
-            ) : (
-              <div className="text-center p-8 text-muted-foreground">
-                У вас пока нет друзей. Добавьте их на вкладке "Найти друзей".
-              </div>
-            )}
+          <TabsContent value="friends">
+            <div className="space-y-4">
+              {acceptedFriends.length === 0 ? (
+                <div className="text-center py-12 bg-secondary/20 rounded-lg">
+                  <h3 className="text-xl font-medium mb-2">У вас пока нет друзей</h3>
+                  <p className="text-muted-foreground mb-4">
+                    Найдите друзей с помощью поиска выше
+                  </p>
+                </div>
+              ) : (
+                acceptedFriends.map((friend) => (
+                  <div key={friend.id} className="flex items-center justify-between bg-secondary/20 p-4 rounded-lg">
+                    <div className="flex items-center space-x-3">
+                      <Avatar>
+                        <AvatarImage src={friend.avatar} />
+                        <AvatarFallback>{friend.name.charAt(0)}</AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <div className="font-medium">{friend.name}</div>
+                        <div className="text-sm text-muted-foreground">
+                          {friend.email || `user${friend.id}@example.com`}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex space-x-2">
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        asChild
+                      >
+                        <a href={`/messages?id=${friend.id}`}>Сообщение</a>
+                      </Button>
+                      <Button 
+                        variant="destructive" 
+                        size="sm"
+                        onClick={() => handleRemoveFriend(friend.id)}
+                      >
+                        Удалить
+                      </Button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
           </TabsContent>
           
-          <TabsContent value="requests" className="mt-4">
-            {pendingRequests.length > 0 ? (
-              pendingRequests.map(renderRequestCard)
-            ) : (
-              <div className="text-center p-8 text-muted-foreground">
-                У вас нет запросов на добавление в друзья.
-              </div>
-            )}
-          </TabsContent>
-          
-          <TabsContent value="find" className="mt-4">
-            {searchTerm && filteredUsers.length === 0 ? (
-              <div className="text-center p-8 text-muted-foreground">
-                Пользователи не найдены. Попробуйте изменить запрос.
-              </div>
-            ) : !searchTerm ? (
-              <div className="text-center p-8 text-muted-foreground">
-                Введите имя или email для поиска пользователей.
-              </div>
-            ) : (
-              filteredUsers.map(renderUserCard)
-            )}
+          <TabsContent value="requests">
+            <div className="space-y-4">
+              {pendingFriends.length === 0 ? (
+                <div className="text-center py-12 bg-secondary/20 rounded-lg">
+                  <h3 className="text-xl font-medium mb-2">Нет входящих заявок</h3>
+                  <p className="text-muted-foreground">
+                    У вас нет заявок в друзья на рассмотрении
+                  </p>
+                </div>
+              ) : (
+                pendingFriends.map((friend) => (
+                  <div key={friend.id} className="flex items-center justify-between bg-secondary/20 p-4 rounded-lg">
+                    <div className="flex items-center space-x-3">
+                      <Avatar>
+                        <AvatarImage src={friend.avatar} />
+                        <AvatarFallback>{friend.name.charAt(0)}</AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <div className="font-medium">{friend.name}</div>
+                        <div className="text-sm text-muted-foreground">
+                          {friend.email || `user${friend.id}@example.com`}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex space-x-2">
+                      <Button 
+                        variant="default" 
+                        size="sm"
+                        onClick={() => handleAcceptFriend(friend.id)}
+                      >
+                        <Check className="mr-2 h-4 w-4" />
+                        Принять
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => handleRejectFriend(friend.id)}
+                      >
+                        <X className="mr-2 h-4 w-4" />
+                        Отклонить
+                      </Button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
           </TabsContent>
         </Tabs>
       </div>
