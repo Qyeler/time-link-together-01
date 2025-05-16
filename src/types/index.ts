@@ -23,6 +23,7 @@ export interface Event {
   description?: string;
   start: Date;
   end: Date;
+  isMultiDay?: boolean; // New flag for multi-day events
   location?: string;
   color: string;
   type: 'personal' | 'friend' | 'group' | 'work';
@@ -48,4 +49,13 @@ export interface CalendarFilters {
   showPersonalEvents: boolean;
   showFriendEvents: boolean;
   showWorkEvents: boolean;
+}
+
+// New interface for friend requests
+export interface FriendRequest {
+  id: string;
+  fromUserId: string;
+  toUserId: string;
+  status: 'pending' | 'accepted' | 'declined';
+  createdAt: Date;
 }

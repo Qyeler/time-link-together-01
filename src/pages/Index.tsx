@@ -8,9 +8,11 @@ import { CalendarFilters } from '../components/Calendar/CalendarFilters';
 import { EventDialog } from '../components/Events/EventDialog';
 import { EventDetails } from '../components/Events/EventDetails';
 import { useSchedule } from '../context/ScheduleContext';
+import { Button } from '../components/ui/button';
+import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs';
 
 const Index = () => {
-  const { selectedDate, setSelectedDate } = useSchedule();
+  const { selectedDate, setSelectedDate, viewMode, setViewMode } = useSchedule();
   const [showEventDialog, setShowEventDialog] = useState(false);
   
   const handlePrevMonth = () => {
@@ -35,6 +37,17 @@ const Index = () => {
           onNext={handleNextMonth}
           onCreateEvent={handleCreateEvent}
         />
+        
+        {/* View mode selector */}
+        <div className="mb-4 flex justify-center">
+          <Tabs value={viewMode} onValueChange={(value: any) => setViewMode(value)}>
+            <TabsList>
+              <TabsTrigger value="month">Месяц</TabsTrigger>
+              <TabsTrigger value="week">Неделя</TabsTrigger>
+              <TabsTrigger value="day">День</TabsTrigger>
+            </TabsList>
+          </Tabs>
+        </div>
         
         <div className="flex flex-1 gap-4">
           <div className="flex-1">
