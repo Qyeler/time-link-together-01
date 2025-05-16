@@ -8,7 +8,6 @@ import { CalendarFilters } from '../components/Calendar/CalendarFilters';
 import { EventDialog } from '../components/Events/EventDialog';
 import { EventDetails } from '../components/Events/EventDetails';
 import { useSchedule } from '../context/ScheduleContext';
-import { Button } from '../components/ui/button';
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs';
 
 const Index = () => {
