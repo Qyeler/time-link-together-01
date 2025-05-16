@@ -1,24 +1,39 @@
 
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { Calendar, Users, MessageCircle, UserPlus, Settings, PlusCircle } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { Button } from '../ui/button';
 import { Separator } from '../ui/separator';
 import { Badge } from '../ui/badge';
+import { useSchedule } from '../../context/ScheduleContext';
+import { useAuth } from '../../context/AuthContext';
+import { Event, Friend } from '../../types';
 
 export const Sidebar: React.FC = () => {
-  // Mock data for friends
-  const friendsList = [
-    { id: '1', name: 'Ник', avatar: 'https://via.placeholder.com/40', status: 'online' },
-    { id: '2', name: 'erzo333', avatar: 'https://via.placeholder.com/40', status: 'offline' },
-    { id: '3', name: 'Nikitonskyyyy', avatar: 'https://via.placeholder.com/40', status: 'online' },
-    { id: '4', name: 'mknikk', avatar: 'https://via.placeholder.com/40', status: 'offline' },
-    { id: '5', name: 'Тимур Байрамов', avatar: 'https://via.placeholder.com/40', status: 'offline' },
-    { id: '6', name: 'mashnovv', avatar: 'https://via.placeholder.com/40', status: 'online' },
-  ];
-
+  const location = useLocation();
+  const { friends, events } = useSchedule();
+  const { user, switchUser } = useAuth();
+  
+  // Filter accepted friends
+  const acceptedFriends = friends.filter((friend) => friend.status === 'accepted');
+  
+  // Filter pending friend requests
+  const pendingRequests = friends.filter((friend) => friend.status === 'pending');
+  
+  // Filter group/event type events
+  const groupEvents = events.filter((event) => event.type === 'group');
+  
   const [activeTab, setActiveTab] = useState('friends');
+  
+  const handleSwitchUser = () => {
+    // Toggle between user1 and user2 for demo purposes
+    if (user?.id === 'user1') {
+      switchUser('user2');
+    } else {
+      switchUser('user1');
+    }
+  };
 
   return (
     <aside className="w-64 bg-sidebar h-full flex flex-col border-r border-sidebar-border">
@@ -31,7 +46,7 @@ export const Sidebar: React.FC = () => {
               : 'text-sidebar-foreground/70 hover:bg-sidebar-accent/50'
           }`}
         >
-          Друзья <Badge variant="secondary" className="ml-1">5</Badge>
+          Друзья <Badge variant="secondary" className="ml-1">{acceptedFriends.length}</Badge>
         </button>
         <button
           onClick={() => setActiveTab('events')}
@@ -41,7 +56,7 @@ export const Sidebar: React.FC = () => {
               : 'text-sidebar-foreground/70 hover:bg-sidebar-accent/50'
           }`}
         >
-          Мероприятия <Badge variant="secondary" className="ml-1">1</Badge>
+          Мероприятия <Badge variant="secondary" className="ml-1">{groupEvents.length}</Badge>
         </button>
         <button
           onClick={() => setActiveTab('chats')}
@@ -51,7 +66,7 @@ export const Sidebar: React.FC = () => {
               : 'text-sidebar-foreground/70 hover:bg-sidebar-accent/50'
           }`}
         >
-          Чаты <Badge variant="secondary" className="ml-1">2</Badge>
+          Чаты <Badge variant="secondary" className="ml-1">{acceptedFriends.length}</Badge>
         </button>
       </div>
 
@@ -72,64 +87,126 @@ export const Sidebar: React.FC = () => {
               <PlusCircle className="h-3.5 w-3.5 mr-1" />
               Создать группу
             </Button>
-            <Button variant="outline" size="sm" className="flex-1 h-8 text-xs">
-              <UserPlus className="h-3.5 w-3.5 mr-1" />
-              Заявки в друзья
-              <Badge variant="secondary" className="ml-1">3</Badge>
-            </Button>
+            <Link to="/friends">
+              <Button variant="outline" size="sm" className="flex-1 h-8 text-xs">
+                <UserPlus className="h-3.5 w-3.5 mr-1" />
+                Заявки
+                {pendingRequests.length > 0 && (
+                  <Badge variant="secondary" className="ml-1">{pendingRequests.length}</Badge>
+                )}
+              </Button>
+            </Link>
           </div>
           
           <Separator className="my-2" />
           
           <div className="space-y-1">
-            {friendsList.map((friend) => (
-              <div key={friend.id} className="flex items-center justify-between p-2 rounded-md hover:bg-sidebar-accent">
-                <div className="flex items-center space-x-2">
-                  <Avatar className="h-8 w-8">
-                    <AvatarImage src={friend.avatar} alt={friend.name} />
-                    <AvatarFallback>{friend.name.charAt(0)}</AvatarFallback>
-                  </Avatar>
-                  <div className="text-sm font-medium text-sidebar-foreground">{friend.name}</div>
+            {acceptedFriends.length === 0 ? (
+              <div className="text-center py-4 text-sm text-muted-foreground">
+                У вас пока нет друзей.
+                <div>
+                  <Link to="/friends" className="text-primary hover:underline">
+                    Добавить друзей
+                  </Link>
                 </div>
-                <button className="text-sidebar-foreground/70 hover:text-sidebar-foreground">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <circle cx="12" cy="12" r="1" />
-                    <circle cx="19" cy="12" r="1" />
-                    <circle cx="5" cy="12" r="1" />
-                  </svg>
-                </button>
               </div>
-            ))}
+            ) : (
+              acceptedFriends.map((friend) => (
+                <div key={friend.id} className="flex items-center justify-between p-2 rounded-md hover:bg-sidebar-accent">
+                  <div className="flex items-center space-x-2">
+                    <Avatar className="h-8 w-8">
+                      <AvatarImage src={friend.avatar} alt={friend.name} />
+                      <AvatarFallback>{friend.name.charAt(0)}</AvatarFallback>
+                    </Avatar>
+                    <div className="text-sm font-medium text-sidebar-foreground">{friend.name}</div>
+                  </div>
+                  <Link 
+                    to={`/messages?id=${friend.id}`} 
+                    className="text-sidebar-foreground/70 hover:text-sidebar-foreground"
+                  >
+                    <MessageCircle className="h-4 w-4" />
+                  </Link>
+                </div>
+              ))
+            )}
           </div>
         </div>
       )}
 
       {activeTab === 'events' && (
         <div className="flex-1 overflow-y-auto p-2">
-          <p className="text-sidebar-foreground/70 text-center py-4">Здесь будут отображаться ваши предстоящие мероприятия</p>
+          {groupEvents.length === 0 ? (
+            <div className="text-center py-4 text-sm text-muted-foreground">
+              У вас пока нет мероприятий
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {groupEvents.map((event: Event) => (
+                <div key={event.id} className="p-3 rounded-md bg-sidebar-accent/30 hover:bg-sidebar-accent">
+                  <div className="font-medium">{event.title}</div>
+                  <div className="text-xs text-muted-foreground">
+                    {new Date(event.start).toLocaleDateString()}
+                  </div>
+                  {event.location && (
+                    <div className="text-xs text-muted-foreground mt-1">{event.location}</div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
       {activeTab === 'chats' && (
         <div className="flex-1 overflow-y-auto p-2">
-          <p className="text-sidebar-foreground/70 text-center py-4">Здесь будут отображаться ваши чаты</p>
+          {acceptedFriends.length === 0 ? (
+            <div className="text-center py-4 text-sm text-muted-foreground">
+              У вас пока нет активных чатов
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {acceptedFriends.map((friend) => (
+                <Link to={`/messages?id=${friend.id}`} key={friend.id}>
+                  <div className="flex items-center p-2 rounded-md hover:bg-sidebar-accent">
+                    <Avatar className="h-8 w-8 mr-2">
+                      <AvatarImage src={friend.avatar} alt={friend.name} />
+                      <AvatarFallback>{friend.name.charAt(0)}</AvatarFallback>
+                    </Avatar>
+                    <div className="text-sm font-medium text-sidebar-foreground">{friend.name}</div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
       <div className="p-2 border-t border-sidebar-border">
         <div className="flex items-center justify-around">
-          <Link to="/" className="sidebar-menu-item">
+          <Link to="/" className={`sidebar-menu-item ${location.pathname === '/' ? 'text-primary' : ''}`}>
             <Calendar className="h-5 w-5" />
           </Link>
-          <Link to="/friends" className="sidebar-menu-item">
+          <Link to="/friends" className={`sidebar-menu-item ${location.pathname === '/friends' ? 'text-primary' : ''}`}>
             <Users className="h-5 w-5" />
           </Link>
-          <Link to="/messages" className="sidebar-menu-item">
+          <Link to="/messages" className={`sidebar-menu-item ${location.pathname === '/messages' ? 'text-primary' : ''}`}>
             <MessageCircle className="h-5 w-5" />
           </Link>
-          <Link to="/settings" className="sidebar-menu-item">
+          <Link to="/settings" className={`sidebar-menu-item ${location.pathname === '/settings' ? 'text-primary' : ''}`}>
             <Settings className="h-5 w-5" />
           </Link>
+        </div>
+        
+        {/* For demo: Button to switch between user1 and user2 */}
+        <div className="mt-2">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="w-full text-xs"
+            onClick={handleSwitchUser}
+          >
+            Переключиться на {user?.id === 'user1' ? 'User2' : 'User1'}
+          </Button>
         </div>
       </div>
     </aside>

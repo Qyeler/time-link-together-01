@@ -12,64 +12,103 @@ import Register from "./pages/Register";
 import Settings from "./pages/Settings";
 import Friends from "./pages/Friends";
 import NotFound from "./pages/NotFound";
+import Messages from "./pages/Messages";
 
 const queryClient = new QueryClient();
 
-// Simplified ProtectedRoute component - will still show loading state but won't redirect
+// ProtectedRoute component - redirects to login if not authenticated
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  const { isLoading } = useAuth();
+  const { isAuthenticated, isLoading } = useAuth();
   
-  // Показываем загрузку, пока проверяем статус аутентификации
+  // Show loading while checking authentication status
   if (isLoading) {
     return <div className="flex justify-center items-center h-screen">Загрузка...</div>;
   }
   
-  // Всегда отображаем содержимое маршрута
+  // Redirect to login if not authenticated
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+  
+  // Show the protected content if authenticated
   return <>{children}</>;
 };
 
-// Упрощенный PublicRoute component - просто отображает содержимое без проверок
+// PublicRoute component - redirects to home if authenticated
 const PublicRoute = ({ children }: { children: React.ReactNode }) => {
-  const { isLoading } = useAuth();
+  const { isAuthenticated, isLoading } = useAuth();
   
-  // Показываем загрузку, пока проверяем статус аутентификации
+  // Show loading while checking authentication status
   if (isLoading) {
     return <div className="flex justify-center items-center h-screen">Загрузка...</div>;
   }
   
-  // Всегда отображаем содержимое маршрута
+  // Redirect to home if already authenticated
+  if (isAuthenticated) {
+    return <Navigate to="/" replace />;
+  }
+  
+  // Show the public content if not authenticated
   return <>{children}</>;
 };
 
-// AppRoutes component для использования контекста аутентификации
+// AppRoutes component for using authentication context
 const AppRoutes = () => {
   return (
     <Routes>
-      {/* Публичные маршруты */}
+      {/* Public routes */}
       <Route 
         path="/login" 
-        element={<Navigate to="/" replace />} 
+        element={
+          <PublicRoute>
+            <Login />
+          </PublicRoute>
+        } 
       />
       <Route 
         path="/register" 
-        element={<Navigate to="/" replace />} 
+        element={
+          <PublicRoute>
+            <Register />
+          </PublicRoute>
+        } 
       />
       
-      {/* Основные маршруты */}
+      {/* Protected routes */}
       <Route 
         path="/" 
-        element={<Index />} 
+        element={
+          <ProtectedRoute>
+            <Index />
+          </ProtectedRoute>
+        } 
       />
       <Route 
         path="/settings" 
-        element={<Settings />} 
+        element={
+          <ProtectedRoute>
+            <Settings />
+          </ProtectedRoute>
+        } 
       />
       <Route 
         path="/friends" 
-        element={<Friends />} 
+        element={
+          <ProtectedRoute>
+            <Friends />
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/messages" 
+        element={
+          <ProtectedRoute>
+            <Messages />
+          </ProtectedRoute>
+        } 
       />
       
-      {/* Маршрут для обработки несуществующих путей */}
+      {/* Route for handling non-existent paths */}
       <Route path="*" element={<NotFound />} />
     </Routes>
   );

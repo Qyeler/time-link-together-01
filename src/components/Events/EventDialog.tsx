@@ -1,5 +1,5 @@
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -20,11 +20,21 @@ import { Checkbox } from '../ui/checkbox';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { Event } from '../../types';
 
+const timeOptions = Array.from({ length: 24 * 4 }, (_, i) => {
+  const hour = Math.floor(i / 4);
+  const minute = (i % 4) * 15;
+  const formattedHour = hour.toString().padStart(2, '0');
+  const formattedMinute = minute.toString().padStart(2, '0');
+  return `${formattedHour}:${formattedMinute}`;
+});
+
 const formSchema = z.object({
   title: z.string().min(1, 'Название события обязательно'),
   description: z.string().optional(),
   startDate: z.date(),
+  startTime: z.string(),
   endDate: z.date(),
+  endTime: z.string(),
   location: z.string().optional(),
   type: z.enum(['personal', 'friend', 'group', 'work']),
   color: z.string(),
@@ -52,7 +62,9 @@ export const EventDialog: React.FC<EventDialogProps> = ({
       title: '',
       description: '',
       startDate: selectedDate,
-      endDate: new Date(selectedDate.getTime() + 60 * 60 * 1000), // Add 1 hour
+      startTime: '12:00',
+      endDate: selectedDate,
+      endTime: '13:00',
       location: '',
       type: 'personal',
       color: '#4f46e5',
@@ -60,16 +72,27 @@ export const EventDialog: React.FC<EventDialogProps> = ({
     },
   });
 
-  // Заполнение формы данными редактируемого события
+  // Filling the form with data from the edited event
   useEffect(() => {
     if (editingEvent) {
       const participantIds = editingEvent.participants?.map(p => p.id) || [];
+      
+      // Format time for start and end
+      const startHours = new Date(editingEvent.start).getHours().toString().padStart(2, '0');
+      const startMinutes = new Date(editingEvent.start).getMinutes().toString().padStart(2, '0');
+      const startTime = `${startHours}:${startMinutes}`;
+      
+      const endHours = new Date(editingEvent.end).getHours().toString().padStart(2, '0');
+      const endMinutes = new Date(editingEvent.end).getMinutes().toString().padStart(2, '0');
+      const endTime = `${endHours}:${endMinutes}`;
       
       form.reset({
         title: editingEvent.title,
         description: editingEvent.description || '',
         startDate: new Date(editingEvent.start),
+        startTime: startTime,
         endDate: new Date(editingEvent.end),
+        endTime: endTime, 
         location: editingEvent.location || '',
         type: editingEvent.type,
         color: editingEvent.color,
@@ -80,7 +103,9 @@ export const EventDialog: React.FC<EventDialogProps> = ({
         title: '',
         description: '',
         startDate: selectedDate,
-        endDate: new Date(selectedDate.getTime() + 60 * 60 * 1000),
+        startTime: '12:00',
+        endDate: selectedDate,
+        endTime: '13:00',
         location: '',
         type: 'personal',
         color: '#4f46e5',
@@ -90,7 +115,17 @@ export const EventDialog: React.FC<EventDialogProps> = ({
   }, [editingEvent, open, selectedDate]);
 
   const onSubmit = (data: z.infer<typeof formSchema>) => {
-    // Находим пользователей по ID для добавления в участники
+    // Parse time strings to create Date objects
+    const [startHours, startMinutes] = data.startTime.split(':').map(Number);
+    const [endHours, endMinutes] = data.endTime.split(':').map(Number);
+    
+    const startDate = new Date(data.startDate);
+    startDate.setHours(startHours, startMinutes, 0);
+    
+    const endDate = new Date(data.endDate);
+    endDate.setHours(endHours, endMinutes, 0);
+    
+    // Find users by ID to add as participants
     const selectedParticipants = acceptedFriends
       .filter(friend => data.participants?.includes(friend.id))
       .map(friend => ({
@@ -101,26 +136,26 @@ export const EventDialog: React.FC<EventDialogProps> = ({
       }));
     
     if (editingEvent) {
-      // Обновление события
+      // Update event
       updateEvent({
         ...editingEvent,
         title: data.title,
         description: data.description,
-        start: data.startDate,
-        end: data.endDate,
+        start: startDate,
+        end: endDate,
         location: data.location,
         type: data.type,
         color: data.color,
         participants: selectedParticipants.length > 0 ? selectedParticipants : undefined,
       });
     } else {
-      // Создание нового события
+      // Create new event
       addEvent({
         id: Date.now().toString(),
         title: data.title,
         description: data.description,
-        start: data.startDate,
-        end: data.endDate,
+        start: startDate,
+        end: endDate,
         location: data.location,
         type: data.type,
         color: data.color,
@@ -132,7 +167,7 @@ export const EventDialog: React.FC<EventDialogProps> = ({
     onOpenChange(false);
   };
 
-  // Получение хранимых значений выбранных участников
+  // Get stored values of selected participants
   const selectedParticipantIds = form.watch('participants') || [];
 
   return (
@@ -215,6 +250,33 @@ export const EventDialog: React.FC<EventDialogProps> = ({
               
               <FormField
                 control={form.control}
+                name="startTime"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Время начала</FormLabel>
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Выберите время" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent className="h-52">
+                        {timeOptions.map((time) => (
+                          <SelectItem key={time} value={time}>
+                            {time}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
                 name="endDate"
                 render={({ field }) => (
                   <FormItem className="flex flex-col">
@@ -248,6 +310,31 @@ export const EventDialog: React.FC<EventDialogProps> = ({
                         />
                       </PopoverContent>
                     </Popover>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="endTime"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Время окончания</FormLabel>
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Выберите время" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent className="h-52">
+                        {timeOptions.map((time) => (
+                          <SelectItem key={time} value={time}>
+                            {time}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -286,7 +373,7 @@ export const EventDialog: React.FC<EventDialogProps> = ({
                     <SelectContent>
                       <SelectItem value="personal">Личное</SelectItem>
                       <SelectItem value="friend">С друзьями</SelectItem>
-                      <SelectItem value="group">Групповое</SelectItem>
+                      <SelectItem value="group">Мероприятие</SelectItem>
                       <SelectItem value="work">Рабочее/Учебное</SelectItem>
                     </SelectContent>
                   </Select>
