@@ -4,7 +4,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { AuthProvider } from "./context/AuthContext";
+import { AuthProvider, useAuth } from "./context/AuthContext";
 import { ScheduleProvider } from "./context/ScheduleContext";
 import Index from "./pages/Index";
 import Login from "./pages/Login";
@@ -12,56 +12,94 @@ import Register from "./pages/Register";
 import Settings from "./pages/Settings";
 import Friends from "./pages/Friends";
 import NotFound from "./pages/NotFound";
-import { useAuth } from "./context/AuthContext";
 
 const queryClient = new QueryClient();
 
-// Protected Route component to ensure only authenticated users can access certain routes
+// Protected Route component с улучшенной логикой
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, isLoading } = useAuth();
   
+  // Показываем загрузку, пока проверяем статус аутентификации
+  if (isLoading) {
+    return <div className="flex justify-center items-center h-screen">Загрузка...</div>;
+  }
+  
+  // Если пользователь не аутентифицирован, перенаправляем на страницу входа
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
   
+  // Если пользователь аутентифицирован, показываем защищенный контент
   return <>{children}</>;
 };
 
-// Layout component that includes the ProtectedRoute check
-const ProtectedLayout = ({ children }: { children: React.ReactNode }) => {
-  return <ProtectedRoute>{children}</ProtectedRoute>;
+// Public Route component для страниц, которые должны быть доступны только неаутентифицированным пользователям
+const PublicRoute = ({ children }: { children: React.ReactNode }) => {
+  const { isAuthenticated, isLoading } = useAuth();
+  
+  // Показываем загрузку, пока проверяем статус аутентификации
+  if (isLoading) {
+    return <div className="flex justify-center items-center h-screen">Загрузка...</div>;
+  }
+  
+  // Если пользователь уже аутентифицирован, перенаправляем на главную страницу
+  if (isAuthenticated) {
+    return <Navigate to="/" replace />;
+  }
+  
+  // Если пользователь не аутентифицирован, показываем публичный контент
+  return <>{children}</>;
 };
 
-// AppRoutes component to use the auth context
+// AppRoutes component для использования контекста аутентификации
 const AppRoutes = () => {
   return (
     <Routes>
-      <Route path="/login" element={<Login />} />
-      <Route path="/register" element={<Register />} />
+      {/* Публичные маршруты (доступны только неаутентифицированным пользователям) */}
+      <Route 
+        path="/login" 
+        element={
+          <PublicRoute>
+            <Login />
+          </PublicRoute>
+        } 
+      />
+      <Route 
+        path="/register" 
+        element={
+          <PublicRoute>
+            <Register />
+          </PublicRoute>
+        } 
+      />
+      
+      {/* Защищенные маршруты (доступны только аутентифицированным пользователям) */}
       <Route 
         path="/" 
         element={
-          <ProtectedLayout>
+          <ProtectedRoute>
             <Index />
-          </ProtectedLayout>
+          </ProtectedRoute>
         } 
       />
       <Route 
         path="/settings" 
         element={
-          <ProtectedLayout>
+          <ProtectedRoute>
             <Settings />
-          </ProtectedLayout>
+          </ProtectedRoute>
         } 
       />
       <Route 
         path="/friends" 
         element={
-          <ProtectedLayout>
+          <ProtectedRoute>
             <Friends />
-          </ProtectedLayout>
+          </ProtectedRoute>
         } 
       />
+      
+      {/* Маршрут для обработки несуществующих путей */}
       <Route path="*" element={<NotFound />} />
     </Routes>
   );

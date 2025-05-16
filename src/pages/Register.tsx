@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -22,9 +22,8 @@ const formSchema = z.object({
 });
 
 const Register = () => {
-  const { register } = useAuth();
-  const navigate = useNavigate();
-  const [loading, setLoading] = useState(false);
+  const { register, isLoading } = useAuth();
+  const [submitting, setSubmitting] = useState(false);
   
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -38,19 +37,9 @@ const Register = () => {
   
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
-      setLoading(true);
+      setSubmitting(true);
       await register(values.name, values.email, values.password);
-      
-      // Show success message then redirect after a delay
-      toast({
-        title: "Успешная регистрация",
-        description: "Перенаправление на главную страницу...",
-      });
-      
-      // Set a timeout to redirect after the toast is displayed
-      setTimeout(() => {
-        navigate('/');
-      }, 2000);
+      // Нет редиректа здесь - он обрабатывается в PublicRoute компоненте
     } catch (error) {
       console.error("Registration failed:", error);
       toast({
@@ -59,9 +48,11 @@ const Register = () => {
         variant: "destructive",
       });
     } finally {
-      setLoading(false);
+      setSubmitting(false);
     }
   };
+  
+  const loading = isLoading || submitting;
   
   return (
     <div className="min-h-screen flex items-center justify-center bg-secondary/20 p-4">
@@ -82,7 +73,7 @@ const Register = () => {
                   <FormItem>
                     <FormLabel>Имя</FormLabel>
                     <FormControl>
-                      <Input placeholder="Иван Иванов" {...field} />
+                      <Input placeholder="Иван Иванов" {...field} disabled={loading} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -95,7 +86,7 @@ const Register = () => {
                   <FormItem>
                     <FormLabel>Email</FormLabel>
                     <FormControl>
-                      <Input placeholder="example@mail.ru" {...field} />
+                      <Input placeholder="example@mail.ru" {...field} disabled={loading} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -108,7 +99,7 @@ const Register = () => {
                   <FormItem>
                     <FormLabel>Пароль</FormLabel>
                     <FormControl>
-                      <Input type="password" placeholder="••••••" {...field} />
+                      <Input type="password" placeholder="••••••" {...field} disabled={loading} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -121,7 +112,7 @@ const Register = () => {
                   <FormItem>
                     <FormLabel>Подтвердите пароль</FormLabel>
                     <FormControl>
-                      <Input type="password" placeholder="••••••" {...field} />
+                      <Input type="password" placeholder="••••••" {...field} disabled={loading} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

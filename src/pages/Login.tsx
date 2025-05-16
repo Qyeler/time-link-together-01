@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -17,9 +17,8 @@ const formSchema = z.object({
 });
 
 const Login = () => {
-  const { login } = useAuth();
-  const navigate = useNavigate();
-  const [loading, setLoading] = useState(false);
+  const { login, isLoading } = useAuth();
+  const [submitting, setSubmitting] = useState(false);
   
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -31,19 +30,9 @@ const Login = () => {
   
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
-      setLoading(true);
+      setSubmitting(true);
       await login(values.email, values.password);
-      
-      // Show success message then redirect after a delay
-      toast({
-        title: "Успешный вход",
-        description: "Перенаправление на главную страницу...",
-      });
-      
-      // Set a timeout to redirect after the toast is displayed
-      setTimeout(() => {
-        navigate('/');
-      }, 2000);
+      // Нет редиректа здесь - он обрабатывается в PublicRoute компоненте
     } catch (error) {
       console.error("Login failed:", error);
       toast({
@@ -52,9 +41,11 @@ const Login = () => {
         variant: "destructive",
       });
     } finally {
-      setLoading(false);
+      setSubmitting(false);
     }
   };
+  
+  const loading = isLoading || submitting;
   
   return (
     <div className="min-h-screen flex items-center justify-center bg-secondary/20 p-4">
@@ -75,7 +66,7 @@ const Login = () => {
                   <FormItem>
                     <FormLabel>Email</FormLabel>
                     <FormControl>
-                      <Input placeholder="example@mail.ru" {...field} />
+                      <Input placeholder="example@mail.ru" {...field} disabled={loading} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -88,7 +79,7 @@ const Login = () => {
                   <FormItem>
                     <FormLabel>Пароль</FormLabel>
                     <FormControl>
-                      <Input type="password" placeholder="••••••" {...field} />
+                      <Input type="password" placeholder="••••••" {...field} disabled={loading} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

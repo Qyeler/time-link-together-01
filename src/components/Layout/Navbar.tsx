@@ -15,7 +15,7 @@ import {
 } from "../ui/dropdown-menu";
 
 export const Navbar: React.FC = () => {
-  const { isAuthenticated, user, logout } = useAuth();
+  const { isAuthenticated, isLoading, user, logout } = useAuth();
 
   return (
     <header className="bg-primary text-primary-foreground p-4 shadow-md">
@@ -38,7 +38,12 @@ export const Navbar: React.FC = () => {
         </div>
 
         <nav className="flex items-center space-x-4">
-          {isAuthenticated ? (
+          {isLoading ? (
+            // Показываем скелетон загрузки
+            <div className="flex items-center space-x-4">
+              <div className="h-10 w-10 rounded-full bg-white/10 animate-pulse"></div>
+            </div>
+          ) : isAuthenticated ? (
             <>
               <Button variant="ghost" size="icon" className="relative">
                 <Bell className="h-5 w-5" />
@@ -49,7 +54,7 @@ export const Navbar: React.FC = () => {
                   <Button variant="ghost" className="relative p-0" size="icon">
                     <Avatar>
                       <AvatarImage src={user?.avatar} alt={user?.name} />
-                      <AvatarFallback>{user?.name?.charAt(0) || 'U'}</AvatarFallback>
+                      <AvatarFallback>{user?.name?.charAt(0) || 'У'}</AvatarFallback>
                     </Avatar>
                   </Button>
                 </DropdownMenuTrigger>

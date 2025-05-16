@@ -5,6 +5,7 @@ import { toast } from "@/hooks/use-toast";
 
 interface AuthContextType {
   isAuthenticated: boolean;
+  isLoading: boolean;
   user: User | null;
   login: (email: string, password: string) => Promise<void>;
   register: (name: string, email: string, password: string) => Promise<void>;
@@ -14,6 +15,7 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType>({
   isAuthenticated: false,
+  isLoading: true,
   user: null,
   login: async () => {},
   register: async () => {},
@@ -46,17 +48,38 @@ const removeUserFromStorage = () => {
 };
 
 export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(() => getUserFromStorage());
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(!!getUserFromStorage());
+  const [user, setUser] = useState<User | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
 
-  // Update authentication state when user changes
+  // Эффект для загрузки пользователя из localStorage при инициализации
   useEffect(() => {
-    setIsAuthenticated(!!user);
-  }, [user]);
+    const loadUser = async () => {
+      try {
+        const storedUser = getUserFromStorage();
+        if (storedUser) {
+          setUser(storedUser);
+          setIsAuthenticated(true);
+        }
+      } catch (error) {
+        console.error('Failed to load user:', error);
+      } finally {
+        // Независимо от результата, завершаем загрузку
+        setIsLoading(false);
+      }
+    };
+    
+    loadUser();
+  }, []);
 
   const login = async (email: string, password: string): Promise<void> => {
     try {
-      // Mock user data - in a real app, this would verify credentials with a backend
+      setIsLoading(true);
+      
+      // Имитация задержки сетевого запроса
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Mock user data - в реальном приложении это будет запрос к бэкенду
       const mockUser: User = {
         id: '1',
         name: 'Тестовый Пользователь',
@@ -64,8 +87,9 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
         avatar: 'https://i.pravatar.cc/150?img=1',
       };
       
-      // Save user to state and localStorage
+      // Сохраняем пользователя в состояние и localStorage
       setUser(mockUser);
+      setIsAuthenticated(true);
       saveUserToStorage(mockUser);
       
       toast({
@@ -82,12 +106,19 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
         variant: "destructive",
       });
       return Promise.reject(error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const register = async (name: string, email: string, password: string): Promise<void> => {
     try {
-      // Mock user registration - in a real app, this would create a user in a backend
+      setIsLoading(true);
+      
+      // Имитация задержки сетевого запроса
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Mock user registration - в реальном приложении это будет запрос к бэкенду
       const mockUser: User = {
         id: Math.random().toString(36).substr(2, 9),
         name: name,
@@ -95,8 +126,9 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
         avatar: 'https://i.pravatar.cc/150?img=1',
       };
       
-      // Save user to state and localStorage
+      // Сохраняем пользователя в состояние и localStorage
       setUser(mockUser);
+      setIsAuthenticated(true);
       saveUserToStorage(mockUser);
       
       toast({
@@ -113,23 +145,34 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
         variant: "destructive",
       });
       return Promise.reject(error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const logout = () => {
-    setUser(null);
-    removeUserFromStorage();
+    setIsLoading(true);
     
-    toast({
-      title: "Выход выполнен",
-      description: "Вы успешно вышли из системы",
-    });
+    // Имитация небольшой задержки
+    setTimeout(() => {
+      setUser(null);
+      setIsAuthenticated(false);
+      removeUserFromStorage();
+      
+      toast({
+        title: "Выход выполнен",
+        description: "Вы успешно вышли из системы",
+      });
+      
+      setIsLoading(false);
+    }, 500);
   };
 
   const updateProfile = (userData: Partial<User>) => {
     if (user) {
       const updatedUser = { ...user, ...userData };
       setUser(updatedUser);
+      setIsAuthenticated(true);
       saveUserToStorage(updatedUser);
       
       toast({
@@ -143,6 +186,7 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
     <AuthContext.Provider
       value={{
         isAuthenticated,
+        isLoading,
         user,
         login,
         register,
