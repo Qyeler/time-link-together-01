@@ -10,6 +10,7 @@ import Settings from "./pages/Settings";
 import Friends from "./pages/Friends";
 import NotFound from "./pages/NotFound";
 import Messages from "./pages/Messages";
+import AuthPage from "./pages/AuthPage";
 
 const queryClient = new QueryClient();
 
@@ -25,6 +26,7 @@ const App = () => (
             <Route path="/settings" element={<Settings />} />
             <Route path="/friends" element={<Friends />} />
             <Route path="/messages" element={<Messages />} />
+            <Route path="/auth" element={<AuthPage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
