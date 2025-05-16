@@ -27,12 +27,12 @@ export const CalendarFilters: React.FC = () => {
             id="personal-events"
             checked={filters.showPersonalEvents}
             onCheckedChange={(checked) => 
-              setFilters({...filters, showPersonalEvents: checked as boolean})
+              setFilters({...filters, showPersonalEvents: !!checked})
             }
           />
           <Label htmlFor="personal-events" className="flex items-center">
-            <div className="h-3 w-3 rounded-full bg-[#4f46e5] mr-2" />
-            Показать только личные события
+            <div className="h-3 w-3 rounded-full bg-indigo-500 mr-2" />
+            Личные события
           </Label>
         </div>
         
@@ -41,12 +41,12 @@ export const CalendarFilters: React.FC = () => {
             id="friend-events"
             checked={filters.showFriendEvents}
             onCheckedChange={(checked) => 
-              setFilters({...filters, showFriendEvents: checked as boolean})
+              setFilters({...filters, showFriendEvents: !!checked})
             }
           />
           <Label htmlFor="friend-events" className="flex items-center">
-            <div className="h-3 w-3 rounded-full bg-[#10b981] mr-2" />
-            Показать события с друзьями
+            <div className="h-3 w-3 rounded-full bg-emerald-500 mr-2" />
+            События с друзьями
           </Label>
         </div>
         
@@ -55,12 +55,12 @@ export const CalendarFilters: React.FC = () => {
             id="work-events"
             checked={filters.showWorkEvents}
             onCheckedChange={(checked) => 
-              setFilters({...filters, showWorkEvents: checked as boolean})
+              setFilters({...filters, showWorkEvents: !!checked})
             }
           />
           <Label htmlFor="work-events" className="flex items-center">
-            <div className="h-3 w-3 rounded-full bg-[#ef4444] mr-2" />
-            Скрыть рабочие/учебные дела
+            <div className="h-3 w-3 rounded-full bg-rose-500 mr-2" />
+            Рабочие/учебные дела
           </Label>
         </div>
       </div>

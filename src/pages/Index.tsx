@@ -6,6 +6,7 @@ import { CalendarHeader } from '../components/Calendar/CalendarHeader';
 import { MonthCalendar } from '../components/Calendar/MonthCalendar';
 import { CalendarFilters } from '../components/Calendar/CalendarFilters';
 import { EventDialog } from '../components/Events/EventDialog';
+import { EventDetails } from '../components/Events/EventDetails';
 import { useSchedule } from '../context/ScheduleContext';
 
 const Index = () => {
@@ -49,6 +50,8 @@ const Index = () => {
           open={showEventDialog}
           onOpenChange={setShowEventDialog}
         />
+        
+        <EventDetails />
       </div>
     </MainLayout>
   );

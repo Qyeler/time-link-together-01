@@ -14,7 +14,7 @@ const getFirstDayOfMonth = (year: number, month: number) => {
 };
 
 export const MonthCalendar: React.FC = () => {
-  const { selectedDate, events } = useSchedule();
+  const { selectedDate, events, setSelectedEvent } = useSchedule();
   
   const year = selectedDate.getFullYear();
   const month = selectedDate.getMonth();
@@ -70,6 +70,27 @@ export const MonthCalendar: React.FC = () => {
     });
   };
   
+  // Handle event click
+  const handleEventClick = (event: Event) => {
+    setSelectedEvent(event);
+  };
+
+  // Get color class for event type
+  const getEventColorClass = (event: Event) => {
+    switch (event.type) {
+      case 'personal': 
+        return 'bg-indigo-500 text-white';
+      case 'friend': 
+        return 'bg-emerald-500 text-white';
+      case 'group': 
+        return 'bg-amber-500 text-white';
+      case 'work': 
+        return 'bg-rose-500 text-white';
+      default: 
+        return 'bg-slate-500 text-white';
+    }
+  };
+  
   // Weekday headers (Monday to Sunday)
   const weekdays = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
   
@@ -103,12 +124,13 @@ export const MonthCalendar: React.FC = () => {
               </span>
             </div>
             
-            <div className="mt-1">
+            <div className="mt-1 space-y-1">
               {getEventsForDay(day.date).slice(0, 3).map((event, i) => (
                 <div 
                   key={i}
-                  className={`calendar-event calendar-event-${event.type}`}
+                  className={`text-xs truncate rounded px-2 py-1 cursor-pointer hover:opacity-80 ${getEventColorClass(event)}`}
                   title={event.title}
+                  onClick={() => handleEventClick(event)}
                 >
                   {event.title}
                 </div>
