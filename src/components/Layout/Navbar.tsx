@@ -4,6 +4,7 @@ import { Bell, Search, User } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { Button } from '../ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
+import { Link } from 'react-router-dom';
 
 export const Navbar: React.FC = () => {
   const { isAuthenticated, user, logout } = useAuth();
@@ -42,8 +43,12 @@ export const Navbar: React.FC = () => {
             </>
           ) : (
             <>
-              <Button variant="ghost">Войти</Button>
-              <Button>Регистрация</Button>
+              <Link to="/login">
+                <Button variant="ghost">Войти</Button>
+              </Link>
+              <Link to="/register">
+                <Button variant="black">Регистрация</Button>
+              </Link>
             </>
           )}
         </nav>

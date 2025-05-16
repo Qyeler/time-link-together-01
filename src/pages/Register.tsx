@@ -1,6 +1,6 @@
 
-import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -23,6 +23,7 @@ const formSchema = z.object({
 const Register = () => {
   const { register } = useAuth();
   const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
   
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -36,10 +37,15 @@ const Register = () => {
   
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
+      setLoading(true);
       await register(values.name, values.email, values.password);
-      navigate('/');
+      // Wait a moment to show success message
+      setTimeout(() => {
+        navigate('/');
+      }, 1500);
     } catch (error) {
       console.error("Registration failed:", error);
+      setLoading(false);
     }
   };
   
@@ -107,8 +113,8 @@ const Register = () => {
                   </FormItem>
                 )}
               />
-              <Button type="submit" className="w-full">
-                Зарегистрироваться
+              <Button type="submit" variant="black" className="w-full" disabled={loading}>
+                {loading ? "Регистрация..." : "Зарегистрироваться"}
               </Button>
             </form>
           </Form>
@@ -116,9 +122,9 @@ const Register = () => {
         <CardFooter className="flex-col">
           <div className="text-center text-sm">
             Уже есть аккаунт?{' '}
-            <a href="/login" className="text-primary hover:underline">
+            <Link to="/login" className="text-primary hover:underline">
               Войти
-            </a>
+            </Link>
           </div>
         </CardFooter>
       </Card>

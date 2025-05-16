@@ -1,6 +1,6 @@
 
-import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -18,6 +18,7 @@ const formSchema = z.object({
 const Login = () => {
   const { login } = useAuth();
   const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
   
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -29,10 +30,15 @@ const Login = () => {
   
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
+      setLoading(true);
       await login(values.email, values.password);
-      navigate('/');
+      // Wait a moment to show success message
+      setTimeout(() => {
+        navigate('/');
+      }, 1500);
     } catch (error) {
       console.error("Login failed:", error);
+      setLoading(false);
     }
   };
   
@@ -74,23 +80,23 @@ const Login = () => {
                   </FormItem>
                 )}
               />
-              <Button type="submit" className="w-full">
-                Войти
+              <Button type="submit" className="w-full" disabled={loading}>
+                {loading ? "Вход..." : "Войти"}
               </Button>
             </form>
           </Form>
           <div className="mt-4 text-center text-sm">
-            <a href="/forgot-password" className="text-primary hover:underline">
+            <Link to="/forgot-password" className="text-primary hover:underline">
               Забыли пароль?
-            </a>
+            </Link>
           </div>
         </CardContent>
         <CardFooter className="flex-col">
           <div className="text-center text-sm">
             Нет аккаунта?{' '}
-            <a href="/register" className="text-primary hover:underline">
+            <Link to="/register" className="text-primary hover:underline">
               Зарегистрироваться
-            </a>
+            </Link>
           </div>
         </CardFooter>
       </Card>
