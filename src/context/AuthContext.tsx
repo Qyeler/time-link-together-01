@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User } from '../types';
 import { toast } from "@/hooks/use-toast";
@@ -52,19 +51,24 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
-  // Эффект для загрузки пользователя из localStorage при инициализации
+  // Эффект для автоматического входа пользователя как "user1"
   useEffect(() => {
     const loadUser = async () => {
       try {
-        const storedUser = getUserFromStorage();
-        if (storedUser) {
-          setUser(storedUser);
-          setIsAuthenticated(true);
-        }
+        // Создаем фиксированного пользователя user1
+        const defaultUser: User = {
+          id: '1',
+          name: 'User1',
+          email: 'user1@example.com',
+          avatar: 'https://i.pravatar.cc/150?img=1',
+        };
+        
+        setUser(defaultUser);
+        setIsAuthenticated(true);
+        saveUserToStorage(defaultUser);
       } catch (error) {
         console.error('Failed to load user:', error);
       } finally {
-        // Независимо от результата, завершаем загрузку
         setIsLoading(false);
       }
     };
@@ -155,13 +159,21 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
     
     // Имитация небольшой задержки
     setTimeout(() => {
-      setUser(null);
-      setIsAuthenticated(false);
-      removeUserFromStorage();
+      // Вместо выхода - заново авторизуем пользователя
+      const defaultUser: User = {
+        id: '1',
+        name: 'User1',
+        email: 'user1@example.com',
+        avatar: 'https://i.pravatar.cc/150?img=1',
+      };
+      
+      setUser(defaultUser);
+      setIsAuthenticated(true);
+      saveUserToStorage(defaultUser);
       
       toast({
-        title: "Выход выполнен",
-        description: "Вы успешно вышли из системы",
+        title: "Действие выполнено",
+        description: "Вы продолжаете использовать систему как User1",
       });
       
       setIsLoading(false);

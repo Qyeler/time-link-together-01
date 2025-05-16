@@ -15,39 +15,29 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
-// Protected Route component с улучшенной логикой
+// Simplified ProtectedRoute component - will still show loading state but won't redirect
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isLoading } = useAuth();
   
   // Показываем загрузку, пока проверяем статус аутентификации
   if (isLoading) {
     return <div className="flex justify-center items-center h-screen">Загрузка...</div>;
   }
   
-  // Если пользователь не аутентифицирован, перенаправляем на страницу входа
-  if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
-  }
-  
-  // Если пользователь аутентифицирован, показываем защищенный контент
+  // Всегда отображаем содержимое маршрута
   return <>{children}</>;
 };
 
-// Public Route component для страниц, которые должны быть доступны только неаутентифицированным пользователям
+// Упрощенный PublicRoute component - просто отображает содержимое без проверок
 const PublicRoute = ({ children }: { children: React.ReactNode }) => {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isLoading } = useAuth();
   
   // Показываем загрузку, пока проверяем статус аутентификации
   if (isLoading) {
     return <div className="flex justify-center items-center h-screen">Загрузка...</div>;
   }
   
-  // Если пользователь уже аутентифицирован, перенаправляем на главную страницу
-  if (isAuthenticated) {
-    return <Navigate to="/" replace />;
-  }
-  
-  // Если пользователь не аутентифицирован, показываем публичный контент
+  // Всегда отображаем содержимое маршрута
   return <>{children}</>;
 };
 
@@ -55,48 +45,28 @@ const PublicRoute = ({ children }: { children: React.ReactNode }) => {
 const AppRoutes = () => {
   return (
     <Routes>
-      {/* Публичные маршруты (доступны только неаутентифицированным пользователям) */}
+      {/* Публичные маршруты */}
       <Route 
         path="/login" 
-        element={
-          <PublicRoute>
-            <Login />
-          </PublicRoute>
-        } 
+        element={<Navigate to="/" replace />} 
       />
       <Route 
         path="/register" 
-        element={
-          <PublicRoute>
-            <Register />
-          </PublicRoute>
-        } 
+        element={<Navigate to="/" replace />} 
       />
       
-      {/* Защищенные маршруты (доступны только аутентифицированным пользователям) */}
+      {/* Основные маршруты */}
       <Route 
         path="/" 
-        element={
-          <ProtectedRoute>
-            <Index />
-          </ProtectedRoute>
-        } 
+        element={<Index />} 
       />
       <Route 
         path="/settings" 
-        element={
-          <ProtectedRoute>
-            <Settings />
-          </ProtectedRoute>
-        } 
+        element={<Settings />} 
       />
       <Route 
         path="/friends" 
-        element={
-          <ProtectedRoute>
-            <Friends />
-          </ProtectedRoute>
-        } 
+        element={<Friends />} 
       />
       
       {/* Маршрут для обработки несуществующих путей */}

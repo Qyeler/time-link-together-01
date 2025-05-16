@@ -15,7 +15,7 @@ import {
 } from "../ui/dropdown-menu";
 
 export const Navbar: React.FC = () => {
-  const { isAuthenticated, isLoading, user, logout } = useAuth();
+  const { isLoading, user, logout } = useAuth();
 
   return (
     <header className="bg-primary text-primary-foreground p-4 shadow-md">
@@ -43,7 +43,7 @@ export const Navbar: React.FC = () => {
             <div className="flex items-center space-x-4">
               <div className="h-10 w-10 rounded-full bg-white/10 animate-pulse"></div>
             </div>
-          ) : isAuthenticated ? (
+          ) : (
             <>
               <Button variant="ghost" size="icon" className="relative">
                 <Bell className="h-5 w-5" />
@@ -59,8 +59,8 @@ export const Navbar: React.FC = () => {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <DropdownMenuLabel>{user?.name || 'Пользователь'}</DropdownMenuLabel>
-                  <DropdownMenuLabel className="text-xs text-muted-foreground">{user?.email}</DropdownMenuLabel>
+                  <DropdownMenuLabel>{user?.name || 'User1'}</DropdownMenuLabel>
+                  <DropdownMenuLabel className="text-xs text-muted-foreground">{user?.email || 'user1@example.com'}</DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   <Link to="/settings">
                     <DropdownMenuItem>
@@ -74,15 +74,6 @@ export const Navbar: React.FC = () => {
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
-            </>
-          ) : (
-            <>
-              <Link to="/login">
-                <Button variant="ghost">Войти</Button>
-              </Link>
-              <Link to="/register">
-                <Button variant="black">Регистрация</Button>
-              </Link>
             </>
           )}
         </nav>
