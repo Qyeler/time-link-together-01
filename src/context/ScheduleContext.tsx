@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Event, Group, Friend, CalendarViewMode, CalendarFilters, User, PrivacySettings, FriendRequest } from '../types';
 import { addDays, subDays, differenceInDays, isSameDay, isWithinInterval } from 'date-fns';
@@ -52,7 +51,7 @@ const generateMockEvents = (baseDate: Date): Event[] => {
   const today = new Date(baseDate);
   today.setHours(0, 0, 0, 0);
   
-  const result = [
+  const result: Event[] = [
     {
       id: 'e1',
       title: 'Встреча с командой',
@@ -134,7 +133,6 @@ const generateMockEvents = (baseDate: Date): Event[] => {
       id: 'e7',
       title: 'Конференция',
       description: 'Ежегодная отраслевая конференция',
-      start: new Date(today),
       start: new Date(today.getFullYear(), today.getMonth(), 16, 10, 0),
       end: new Date(today.getFullYear(), today.getMonth(), 20, 18, 0),
       isMultiDay: true,
