@@ -4,8 +4,6 @@ import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { Button } from '../ui/button';
 import { Check, X, MessageCircle } from 'lucide-react';
 import { Friend, User } from '../../types';
-import { useAuth } from '../../context/AuthContext';
-import { useSchedule } from '../../context/ScheduleContext';
 
 interface FriendItemProps {
   friend: Friend;
@@ -22,35 +20,22 @@ export const FriendItem: React.FC<FriendItemProps> = ({
   onReject, 
   onRemove 
 }) => {
-  const { user } = useAuth();
-  const { allUsers } = useSchedule();
-  
-  // Определяем ID и данные друга в зависимости от того, кто кого добавил
-  const friendId = friend.addedBy === user?.id ? friend.toUserId : friend.addedBy;
-  
-  // Находим детальную информацию о друге из списка всех пользователей
-  const friendInfo = allUsers.find(u => u.id === friendId);
-  
-  // Используем найденную информацию или данные из объекта friend
-  const friendName = friendInfo?.name || friend.name;
-  const friendEmail = friendInfo?.email || friend.email || `user${friendId}@example.com`;
-  const friendAvatar = friendInfo?.avatar || friend.avatar;
-  
+  // Display friend information
   return (
     <div className="flex items-center justify-between bg-secondary/20 p-4 rounded-lg">
       <div className="flex items-center space-x-3">
         <Avatar>
-          <AvatarImage src={friendAvatar} />
-          <AvatarFallback>{friendName.charAt(0)}</AvatarFallback>
+          <AvatarImage src={friend.avatar} />
+          <AvatarFallback>{friend.name?.charAt(0) || 'U'}</AvatarFallback>
         </Avatar>
         <div>
-          <div className="font-medium">{friendName}</div>
+          <div className="font-medium">{friend.name}</div>
           <div className="text-sm text-muted-foreground">
-            {friendEmail}
+            {friend.email || `user${friend.id}@example.com`}
           </div>
           {isPending && (
             <div className="text-xs text-blue-500 mt-1">
-              Запрос от: {friend.addedBy === user?.id ? "Вас" : friendName}
+              Запрос от: {friend.name}
             </div>
           )}
         </div>
@@ -87,7 +72,7 @@ export const FriendItem: React.FC<FriendItemProps> = ({
             size="sm" 
             asChild
           >
-            <a href={`/messages?id=${friendId}`}>
+            <a href={`/messages?id=${friend.id}`}>
               <MessageCircle className="mr-2 h-4 w-4" />
               Сообщение
             </a>
@@ -97,7 +82,7 @@ export const FriendItem: React.FC<FriendItemProps> = ({
             <Button 
               variant="destructive" 
               size="sm"
-              onClick={() => onRemove(friendId)}
+              onClick={() => onRemove(friend.id)}
             >
               Удалить
             </Button>

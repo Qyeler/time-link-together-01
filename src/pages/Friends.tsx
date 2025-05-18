@@ -1,18 +1,17 @@
-
 import React, { useState, useEffect } from 'react';
 import { MainLayout } from '../components/Layout/MainLayout';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '../components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Input } from '../components/ui/input';
 import { Button } from '../components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
-import { Avatar, AvatarFallback, AvatarImage } from '../components/ui/avatar';
-import { Separator } from '../components/ui/separator';
-import { Search, UserPlus, Check, X } from 'lucide-react';
+import { Search, UserPlus } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useSchedule } from '../context/ScheduleContext';
 import { Friend, User } from '../types';
 import { toast } from "@/hooks/use-toast";
 import { useIsMobile } from '../hooks/use-mobile';
+import { FriendItem } from '../components/Friends/FriendItem';
+import { runFriendTests } from '../utils/friendTests';
 
 const Friends = () => {
   const { user, isAuthenticated } = useAuth();
@@ -22,29 +21,33 @@ const Friends = () => {
     addFriend, 
     acceptFriend, 
     rejectFriend, 
-    removeFriend,
-    hasFriendRequest,
-    getFriendRequests 
+    removeFriend
   } = useSchedule();
   
   const isMobile = useIsMobile();
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   
-  // Фильтруем принятых друзей для текущего пользователя
+  // Get accepted friends for current user
   const acceptedFriends = friends.filter((friend) => 
     friend.status === 'accepted' && 
     (friend.addedBy === user?.id || friend.toUserId === user?.id)
   );
   
-  // Получаем входящие запросы в друзья - только запросы TO текущего пользователя, не от него
+  // Get pending friends requests sent TO current user (not FROM them)
   const pendingFriends = friends.filter((friend) => 
     friend.status === 'pending' && 
-    friend.toUserId === user?.id && 
-    friend.addedBy !== user?.id
+    friend.toUserId === user?.id
   );
   
-  // Поиск пользователей по имени или email
+  useEffect(() => {
+    console.log("Current user:", user);
+    console.log("All friends:", friends);
+    console.log("Accepted friends:", acceptedFriends);
+    console.log("Pending friends:", pendingFriends);
+  }, [user, friends, acceptedFriends, pendingFriends]);
+  
+  // Handle search
   const handleSearch = () => {
     if (!searchQuery.trim()) {
       toast({
@@ -57,39 +60,34 @@ const Friends = () => {
     
     setIsSearching(true);
     
-    // В реальном приложении это был бы API-запрос
     setTimeout(() => {
       setIsSearching(false);
     }, 500);
   };
   
-  // Результаты поиска исключают пользователей с существующими запросами
+  // Search results - exclude current user and existing friends
   const searchResults = React.useMemo(() => {
     if (!searchQuery.trim() || !user) return [];
     
-    // Фильтр по поисковому запросу (имя или email)
+    // Filter by search query
     const results = allUsers.filter(searchUser => 
       searchUser.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
       (searchUser.email && searchUser.email.toLowerCase().includes(searchQuery.toLowerCase()))
     );
     
-    // Исключаем текущего пользователя и уже добавленных друзей
-    return results.filter(result => 
-      result.id !== user.id && 
-      !acceptedFriends.some(friend => 
+    // Exclude current user and existing friends/requests
+    return results.filter(result => {
+      if (result.id === user.id) return false;
+      
+      // Check if already a friend or has pending request
+      return !friends.some(friend => 
         (friend.addedBy === user.id && friend.toUserId === result.id) ||
         (friend.addedBy === result.id && friend.toUserId === user.id)
-      )
-    );
-  }, [searchQuery, acceptedFriends, user, allUsers]);
+      );
+    });
+  }, [searchQuery, friends, user, allUsers]);
   
-  const handleAddFriend = (friendToAdd: User) => {
-    if (user) {
-      addFriend(friendToAdd.id);
-    }
-  };
-  
-  // Проверка наличия исходящего запроса в друзья для пользователя
+  // Check if a pending request exists for a user
   const isPendingRequest = (userId: string) => {
     return friends.some(friend => 
       friend.addedBy === user?.id && 
@@ -98,23 +96,48 @@ const Friends = () => {
     );
   };
   
-  // Обработчики для действий с запросами дружбы
+  // Add friend handler
+  const handleAddFriend = (friendToAdd: User) => {
+    if (user) {
+      addFriend(friendToAdd.id);
+      
+      // Run tests after adding
+      setTimeout(() => {
+        runFriendTests(friends, user, friendToAdd);
+      }, 500);
+      
+      toast({
+        title: "Запрос отправлен",
+        description: `Запрос на добавление в друзья отправлен ${friendToAdd.name}`
+      });
+    }
+  };
+  
+  // Accept friend request
   const handleAcceptFriend = (friendId: string) => {
     acceptFriend(friendId);
+    toast({
+      title: "Запрос принят",
+      description: "Пользователь добавлен в список друзей"
+    });
   };
   
+  // Reject friend request
   const handleRejectFriend = (friendId: string) => {
     rejectFriend(friendId);
+    toast({
+      title: "Запрос отклонен",
+      description: "Запрос на добавление в друзья отклонен"
+    });
   };
   
+  // Remove friend
   const handleRemoveFriend = (friendId: string) => {
     removeFriend(friendId);
-  };
-  
-  // Функция для получения имени пользователя по ID
-  const getUserNameById = (userId: string): string => {
-    const foundUser = allUsers.find(u => u.id === userId);
-    return foundUser ? foundUser.name : `Пользователь ${userId}`;
+    toast({
+      title: "Друг удален",
+      description: "Пользователь удален из списка друзей"
+    });
   };
   
   if (!isAuthenticated) {
@@ -130,12 +153,6 @@ const Friends = () => {
       </MainLayout>
     );
   }
-  
-  // Эффект для проверки и логирования состояния друзей и запросов
-  useEffect(() => {
-    console.log("Accepted friends:", acceptedFriends);
-    console.log("Pending friends requests:", pendingFriends);
-  }, [acceptedFriends, pendingFriends]);
   
   return (
     <MainLayout>
@@ -227,47 +244,23 @@ const Friends = () => {
                 </div>
               ) : (
                 acceptedFriends.map((friend) => {
-                  // Определяем ID и данные друга в зависимости от того, кто кого добавил
+                  // Determine friend data
                   const friendId = friend.addedBy === user?.id ? friend.toUserId : friend.addedBy;
-                  const friendName = friend.addedBy === user?.id ? 
-                    allUsers.find(u => u.id === friend.toUserId)?.name || friend.name : 
-                    friend.name;
-                  const friendEmail = friend.addedBy === user?.id ? 
-                    allUsers.find(u => u.id === friend.toUserId)?.email || `user${friendId}@example.com` : 
-                    friend.email || `user${friendId}@example.com`;
+                  const friendData = allUsers.find(u => u.id === friendId) || friend;
                   
                   return (
-                    <div key={friendId} className="flex items-center justify-between bg-secondary/20 p-4 rounded-lg">
-                      <div className="flex items-center space-x-3">
-                        <Avatar>
-                          <AvatarImage src={friend.avatar} />
-                          <AvatarFallback>{friendName.charAt(0)}</AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <div className="font-medium">{friendName}</div>
-                          <div className="text-sm text-muted-foreground">
-                            {friendEmail}
-                          </div>
-                        </div>
-                      </div>
-                      <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          asChild
-                        >
-                          <a href={`/messages?id=${friendId}`}>Сообщение</a>
-                        </Button>
-                        <Button 
-                          variant="destructive" 
-                          size="sm"
-                          onClick={() => handleRemoveFriend(friendId)}
-                        >
-                          Удалить
-                        </Button>
-                      </div>
-                    </div>
-                  )
+                    <FriendItem 
+                      key={friendId}
+                      friend={{
+                        ...friend,
+                        id: friendId,
+                        name: friendData.name,
+                        email: friendData.email,
+                        avatar: friendData.avatar
+                      }}
+                      onRemove={handleRemoveFriend}
+                    />
+                  );
                 })
               )}
             </div>
@@ -283,40 +276,25 @@ const Friends = () => {
                   </p>
                 </div>
               ) : (
-                pendingFriends.map((friend) => (
-                  <div key={friend.id} className="flex items-center justify-between bg-secondary/20 p-4 rounded-lg">
-                    <div className="flex items-center space-x-3">
-                      <Avatar>
-                        <AvatarImage src={friend.avatar} />
-                        <AvatarFallback>{friend.name.charAt(0)}</AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <div className="font-medium">{friend.name}</div>
-                        <div className="text-sm text-muted-foreground">
-                          {friend.email || `user${friend.id}@example.com`}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
-                      <Button 
-                        variant="default" 
-                        size="sm"
-                        onClick={() => handleAcceptFriend(friend.id)}
-                      >
-                        <Check className="mr-2 h-4 w-4" />
-                        Принять
-                      </Button>
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => handleRejectFriend(friend.id)}
-                      >
-                        <X className="mr-2 h-4 w-4" />
-                        Отклонить
-                      </Button>
-                    </div>
-                  </div>
-                ))
+                pendingFriends.map((friend) => {
+                  // Get sender data
+                  const senderData = allUsers.find(u => u.id === friend.addedBy) || friend;
+                  
+                  return (
+                    <FriendItem
+                      key={friend.id}
+                      friend={{
+                        ...friend,
+                        name: senderData.name,
+                        email: senderData.email,
+                        avatar: senderData.avatar
+                      }}
+                      isPending={true}
+                      onAccept={handleAcceptFriend}
+                      onReject={handleRejectFriend}
+                    />
+                  );
+                })
               )}
             </div>
           </TabsContent>
