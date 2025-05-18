@@ -9,9 +9,9 @@ export const EventDialogWrapper: React.FC = () => {
   return (
     <div className="max-h-[80vh] overflow-y-auto">
       <EventDialog 
-        event={selectedEvent} 
-        onClose={() => setSelectedEvent(null)} 
-        title="Добавить событие"
+        open={!!selectedEvent}
+        onOpenChange={(open) => !open && setSelectedEvent(null)}
+        editingEvent={selectedEvent}
       />
     </div>
   );
