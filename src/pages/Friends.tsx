@@ -22,7 +22,7 @@ const Friends = () => {
     addFriend, 
     acceptFriend, 
     rejectFriend, 
-    removeFriend, 
+    removeFriend,
     hasFriendRequest,
     getFriendRequests 
   } = useSchedule();
@@ -31,20 +31,20 @@ const Friends = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   
-  // Filter friends by status and belonging to current user
+  // Фильтруем принятых друзей для текущего пользователя
   const acceptedFriends = friends.filter((friend) => 
     friend.status === 'accepted' && 
     (friend.addedBy === user?.id || friend.toUserId === user?.id)
   );
   
-  // Get pending friend requests for current user - fixed to properly filter requests TO the current user
+  // Получаем входящие запросы в друзья - только запросы TO текущего пользователя, не от него
   const pendingFriends = friends.filter((friend) => 
     friend.status === 'pending' && 
     friend.toUserId === user?.id && 
-    friend.addedBy !== user?.id  // Make sure not to show requests sent by the current user
+    friend.addedBy !== user?.id
   );
   
-  // Search for users by name or email
+  // Поиск пользователей по имени или email
   const handleSearch = () => {
     if (!searchQuery.trim()) {
       toast({
@@ -57,24 +57,23 @@ const Friends = () => {
     
     setIsSearching(true);
     
-    // In a real app this would be an API call
-    // For demo, simulate search with delay
+    // В реальном приложении это был бы API-запрос
     setTimeout(() => {
       setIsSearching(false);
     }, 500);
   };
   
-  // Search results now excludes users with pending requests
+  // Результаты поиска исключают пользователей с существующими запросами
   const searchResults = React.useMemo(() => {
     if (!searchQuery.trim() || !user) return [];
     
-    // Filter based on search query (name or email)
+    // Фильтр по поисковому запросу (имя или email)
     const results = allUsers.filter(searchUser => 
       searchUser.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
       (searchUser.email && searchUser.email.toLowerCase().includes(searchQuery.toLowerCase()))
     );
     
-    // Exclude current user and already added friends
+    // Исключаем текущего пользователя и уже добавленных друзей
     return results.filter(result => 
       result.id !== user.id && 
       !acceptedFriends.some(friend => 
@@ -90,7 +89,7 @@ const Friends = () => {
     }
   };
   
-  // Check if a friend request already exists for this user
+  // Проверка наличия исходящего запроса в друзья для пользователя
   const isPendingRequest = (userId: string) => {
     return friends.some(friend => 
       friend.addedBy === user?.id && 
@@ -99,7 +98,7 @@ const Friends = () => {
     );
   };
   
-  // Add handlers for friend request actions
+  // Обработчики для действий с запросами дружбы
   const handleAcceptFriend = (friendId: string) => {
     acceptFriend(friendId);
   };
@@ -110,6 +109,12 @@ const Friends = () => {
   
   const handleRemoveFriend = (friendId: string) => {
     removeFriend(friendId);
+  };
+  
+  // Функция для получения имени пользователя по ID
+  const getUserNameById = (userId: string): string => {
+    const foundUser = allUsers.find(u => u.id === userId);
+    return foundUser ? foundUser.name : `Пользователь ${userId}`;
   };
   
   if (!isAuthenticated) {
@@ -125,6 +130,12 @@ const Friends = () => {
       </MainLayout>
     );
   }
+  
+  // Эффект для проверки и логирования состояния друзей и запросов
+  useEffect(() => {
+    console.log("Accepted friends:", acceptedFriends);
+    console.log("Pending friends requests:", pendingFriends);
+  }, [acceptedFriends, pendingFriends]);
   
   return (
     <MainLayout>
@@ -216,7 +227,7 @@ const Friends = () => {
                 </div>
               ) : (
                 acceptedFriends.map((friend) => {
-                  // Determine friend details based on who added whom
+                  // Определяем ID и данные друга в зависимости от того, кто кого добавил
                   const friendId = friend.addedBy === user?.id ? friend.toUserId : friend.addedBy;
                   const friendName = friend.addedBy === user?.id ? 
                     allUsers.find(u => u.id === friend.toUserId)?.name || friend.name : 

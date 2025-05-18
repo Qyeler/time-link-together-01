@@ -428,8 +428,8 @@ export const ScheduleProvider: React.FC<{children: React.ReactNode}> = ({ childr
     
     // Check if request already exists
     const existingRequest = friends.find(f => 
-      (f.addedBy === currentUser.id && f.toUserId === targetUser.id) || 
-      (f.addedBy === targetUser.id && f.toUserId === currentUser.id)
+      (f.addedBy === currentUser.id && f.toUserId === userId) || 
+      (f.addedBy === userId && f.toUserId === currentUser.id)
     );
     
     if (existingRequest) {
@@ -440,9 +440,12 @@ export const ScheduleProvider: React.FC<{children: React.ReactNode}> = ({ childr
       return;
     }
     
-    // Create new friend request with correct fields
+    // Create new friend request with proper ID
     const friendRequest: Friend = {
-      ...targetUser,  // Copy target user properties (name, avatar, etc)
+      id: targetUser.id,  // ID запроса устанавливаем как ID выбранного пользователя для корректного поиска
+      name: targetUser.name,
+      email: targetUser.email,
+      avatar: targetUser.avatar,
       status: 'pending',
       addedBy: currentUser.id,  // Current user is sending the request
       toUserId: targetUser.id   // Target user is receiving the request
@@ -452,7 +455,7 @@ export const ScheduleProvider: React.FC<{children: React.ReactNode}> = ({ childr
     
     // Create notification for target user
     addNotification({
-      userId: targetUser.id,
+      userId: targetUser.id, // Правильный получатель уведомления
       title: 'Новый запрос в друзья',
       message: `${currentUser.name} хочет добавить вас в друзья`,
       type: 'friend_request',
@@ -467,20 +470,32 @@ export const ScheduleProvider: React.FC<{children: React.ReactNode}> = ({ childr
   };
   
   // Fixed function for accepting friend requests
-  const acceptFriendRequest = (userId: string) => {
-    setFriends(
-      friends.map(friend => 
-        friend.id === userId ? { ...friend, status: 'accepted' } : friend
+  const acceptFriendRequest = (friendId: string) => {
+    // Найдем запрос дружбы по ID отправителя
+    const friendRequest = friends.find(friend => friend.id === friendId && friend.status === 'pending');
+    
+    if (!friendRequest) {
+      toast({
+        title: "Ошибка",
+        description: "Запрос на добавление в друзья не найден",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    setFriends(prev => 
+      prev.map(friend => 
+        friend.id === friendId ? { ...friend, status: 'accepted' } : friend
       )
     );
     
-    // Get the user who sent the request
-    const requester = allUsers.find(u => u.id === userId);
+    // Полу��аем информацию о пользователе, отправившем запрос
+    const requesterInfo = allUsers.find(u => u.id === friendRequest.addedBy);
     
-    if (requester && currentUser) {
-      // Add notification for the requester
+    if (requesterInfo && currentUser) {
+      // Добавляем уведомление для отправителя запроса
       addNotification({
-        userId: userId,
+        userId: friendRequest.addedBy,
         title: 'Запрос в друзья принят',
         message: `${currentUser.name} принял ваш запрос в друзья`,
         type: 'friend_request',
@@ -495,20 +510,39 @@ export const ScheduleProvider: React.FC<{children: React.ReactNode}> = ({ childr
     });
   };
   
-  const declineFriendRequest = (userId: string) => {
-    setFriends(
-      friends.map(friend => 
-        friend.id === userId ? { ...friend, status: 'declined' } : friend
-      )
+  const declineFriendRequest = (friendId: string) => {
+    // Найдем запрос дружбы по ID
+    const friendRequest = friends.find(friend => friend.id === friendId && friend.status === 'pending');
+    
+    if (!friendRequest) {
+      toast({
+        title: "Ошибка",
+        description: "Запрос на добавление в друзья не найден",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    setFriends(prev => 
+      prev.filter(friend => !(friend.id === friendId && friend.toUserId === currentUser?.id))
     );
+    
     toast({
       title: "Запрос отклонен",
       description: "Запрос на добавление в друзья отклонен",
     });
   };
   
-  const removeFriend = (userId: string) => {
-    setFriends(friends.filter(friend => friend.id !== userId));
+  const removeFriend = (friendId: string) => {
+    // Удаляем друга по ID
+    setFriends(friends.filter(friend => 
+      // Проверяем обе комбинации пользователей для правильного удаления
+      !(
+        (friend.addedBy === currentUser?.id && friend.toUserId === friendId) ||
+        (friend.addedBy === friendId && friend.toUserId === currentUser?.id)
+      )
+    ));
+    
     toast({
       title: "Друг удален",
       description: "Пользователь удален из списка друзей",
