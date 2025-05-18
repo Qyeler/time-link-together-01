@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { MainLayout } from '../components/Layout/MainLayout';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '../components/ui/card';
@@ -85,7 +86,6 @@ const Friends = () => {
   
   const handleAddFriend = (friendToAdd: User) => {
     if (user) {
-      // Correctly pass the target user's ID
       addFriend(friendToAdd.id);
     }
   };
@@ -97,6 +97,19 @@ const Friends = () => {
       friend.toUserId === userId && 
       friend.status === 'pending'
     );
+  };
+  
+  // Add handlers for friend request actions
+  const handleAcceptFriend = (friendId: string) => {
+    acceptFriend(friendId);
+  };
+  
+  const handleRejectFriend = (friendId: string) => {
+    rejectFriend(friendId);
+  };
+  
+  const handleRemoveFriend = (friendId: string) => {
+    removeFriend(friendId);
   };
   
   if (!isAuthenticated) {
@@ -203,9 +216,14 @@ const Friends = () => {
                 </div>
               ) : (
                 acceptedFriends.map((friend) => {
-                  // Determine friend ID and name based on who added whom
-                  const friendId = friend.addedBy === user?.id ? friend.toUserId : friend.id;
-                  const friendName = friend.name;
+                  // Determine friend details based on who added whom
+                  const friendId = friend.addedBy === user?.id ? friend.toUserId : friend.addedBy;
+                  const friendName = friend.addedBy === user?.id ? 
+                    allUsers.find(u => u.id === friend.toUserId)?.name || friend.name : 
+                    friend.name;
+                  const friendEmail = friend.addedBy === user?.id ? 
+                    allUsers.find(u => u.id === friend.toUserId)?.email || `user${friendId}@example.com` : 
+                    friend.email || `user${friendId}@example.com`;
                   
                   return (
                     <div key={friendId} className="flex items-center justify-between bg-secondary/20 p-4 rounded-lg">
@@ -217,7 +235,7 @@ const Friends = () => {
                         <div>
                           <div className="font-medium">{friendName}</div>
                           <div className="text-sm text-muted-foreground">
-                            {friend.email || `user${friendId}@example.com`}
+                            {friendEmail}
                           </div>
                         </div>
                       </div>
