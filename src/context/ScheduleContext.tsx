@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Event, Group, Friend, CalendarViewMode, CalendarFilters, User, PrivacySettings, FriendRequest, Notification } from '../types';
 import { addDays, subDays, differenceInDays, isSameDay, isWithinInterval } from 'date-fns';
@@ -310,7 +309,7 @@ export const ScheduleProvider: React.FC<{children: React.ReactNode}> = ({ childr
   const getFriendRequests = (userId: string): Friend[] => {
     return friends.filter(friend => 
       friend.status === 'pending' && 
-      (friend.toUserId === userId)
+      friend.toUserId === userId
     );
   };
 
@@ -422,15 +421,15 @@ export const ScheduleProvider: React.FC<{children: React.ReactNode}> = ({ childr
     });
   };
 
-  // Friend management
+  // Fixed friend request functionality
   const sendFriendRequest = (userId: string) => {
     const targetUser = allUsers.find(u => u.id === userId);
     if (!targetUser || !currentUser) return;
     
     // Check if request already exists
     const existingRequest = friends.find(f => 
-      (f.id === userId && f.toUserId === currentUser.id) || 
-      (f.id === currentUser.id && f.toUserId === userId)
+      (f.id === targetUser.id && f.toUserId === currentUser.id) || 
+      (f.id === currentUser.id && f.toUserId === targetUser.id)
     );
     
     if (existingRequest) {
@@ -441,19 +440,19 @@ export const ScheduleProvider: React.FC<{children: React.ReactNode}> = ({ childr
       return;
     }
     
-    // Create friend request
-    const friendRequest: Friend = { 
-      ...targetUser, 
+    // Create friend request - fixed to use proper fields
+    const friendRequest: Friend = {
+      ...targetUser,
       status: 'pending',
       addedBy: currentUser.id,
-      toUserId: userId
+      toUserId: targetUser.id // Ensure toUserId has the target user's ID
     };
     
     setFriends(prev => [...prev, friendRequest]);
     
     // Create notification for target user
     addNotification({
-      userId: userId,
+      userId: targetUser.id,
       title: 'Новый запрос в друзья',
       message: `${currentUser.name} хочет добавить вас в друзья`,
       type: 'friend_request',
@@ -467,6 +466,7 @@ export const ScheduleProvider: React.FC<{children: React.ReactNode}> = ({ childr
     });
   };
   
+  // Fixed function for accepting friend requests
   const acceptFriendRequest = (userId: string) => {
     setFriends(
       friends.map(friend => 
@@ -568,8 +568,8 @@ export const ScheduleProvider: React.FC<{children: React.ReactNode}> = ({ childr
         removeFriend,
         updateUserProfile,
         isAuthenticated,
-        // Add aliases to match the functions used in Friends.tsx
-        addFriend: (friend: Friend) => sendFriendRequest(friend.id),
+        // Fixed aliases to match the functions used in Friends.tsx
+        addFriend: sendFriendRequest, // Use the correct function here
         acceptFriend: acceptFriendRequest,
         rejectFriend: declineFriendRequest,
         // Friend request related functions

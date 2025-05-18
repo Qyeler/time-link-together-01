@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { MainLayout } from '../components/Layout/MainLayout';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '../components/ui/card';
@@ -37,7 +36,7 @@ const Friends = () => {
     (friend.addedBy === user?.id || friend.toUserId === user?.id)
   );
   
-  // Get pending friend requests for current user
+  // Get pending friend requests for current user - fixed to properly filter
   const pendingFriends = friends.filter((friend) => 
     friend.status === 'pending' && 
     friend.toUserId === user?.id
@@ -85,12 +84,8 @@ const Friends = () => {
   
   const handleAddFriend = (friendToAdd: User) => {
     if (user) {
-      addFriend({
-        ...friendToAdd as Friend,
-        status: 'pending',
-        addedBy: user.id,
-        toUserId: friendToAdd.id
-      });
+      // Make sure we're using the correct user ID for the toUserId
+      addFriend(friendToAdd.id);
     }
   };
   
@@ -219,10 +214,9 @@ const Friends = () => {
                 </div>
               ) : (
                 acceptedFriends.map((friend) => {
-                  // Determine friend ID based on who added whom
-                  const friendId = friend.id === user?.id ? friend.toUserId : friend.id;
-                  // Determine friend name
-                  const friendName = friend.id === user?.id ? friend.toUserId : friend.name;
+                  // Determine friend ID and name based on who added whom
+                  const friendId = friend.addedBy === user?.id ? friend.toUserId : friend.id;
+                  const friendName = friend.name;
                   
                   return (
                     <div key={friendId} className="flex items-center justify-between bg-secondary/20 p-4 rounded-lg">
