@@ -29,19 +29,20 @@ const Friends = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   
-  // Фильтруем друзей по статусу и принадлежности к текущему пользователю
+  // Filter friends by status and belonging to current user
   const acceptedFriends = friends.filter((friend) => 
     friend.status === 'accepted' && 
-    (friend.addedBy === user?.id || friend.id === user?.id)
+    (friend.addedBy === user?.id || friend.toUserId === user?.id)
   );
   
+  // Get pending friend requests for current user
   const pendingFriends = friends.filter((friend) => 
     friend.status === 'pending' && 
-    // Только те заявки, которые отправлены текущему пользователю
-    ((friend.addedBy && friend.addedBy !== user?.id) || friend.toUserId === user?.id)
+    // Only requests sent to current user
+    (friend.toUserId === user?.id)
   );
   
-  // Поиск пользователей по запросу (имя или email)
+  // Search for users by name or email
   const handleSearch = () => {
     if (!searchQuery.trim()) {
       toast({
@@ -54,30 +55,27 @@ const Friends = () => {
     
     setIsSearching(true);
     
-    // В реальном приложении это был бы API-вызов
-    // Для этого демо имитируем поиск с задержкой
+    // In a real app this would be an API call
+    // For demo, simulate search with delay
     setTimeout(() => {
       setIsSearching(false);
     }, 500);
   };
   
-  // Результаты поиска - теперь включает поиск по email
+  // Search results - now includes email search
   const searchResults = React.useMemo(() => {
     if (!searchQuery.trim() || !user) return [];
     
-    // Фильтрация на основе поискового запроса (имя или email)
+    // Filter based on search query (name or email)
     const results = allUsers.filter(searchUser => 
       searchUser.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
       (searchUser.email && searchUser.email.toLowerCase().includes(searchQuery.toLowerCase()))
     );
     
-    // Исключить текущего пользователя и уже добавленных друзей
+    // Exclude current user and already added friends
     return results.filter(result => 
       result.id !== user.id && 
-      !acceptedFriends.some(friend => 
-        (friend.id === result.id && friend.addedBy === user.id) || 
-        (friend.addedBy === result.id && friend.id === user.id)
-      )
+      !acceptedFriends.some(friend => friend.id === result.id || friend.toUserId === result.id)
     );
   }, [searchQuery, acceptedFriends, user, allUsers]);
   
@@ -85,7 +83,8 @@ const Friends = () => {
     if (user) {
       addFriend({
         ...friendToAdd as Friend,
-        addedBy: user.id // Добавляем информацию о том, кто добавил друга
+        addedBy: user.id,
+        toUserId: friendToAdd.id
       });
     }
   };
@@ -102,10 +101,10 @@ const Friends = () => {
     removeFriend(friendId);
   };
 
-  // Проверяем, есть ли уже запрос на добавление в друзья для этого пользователя
+  // Check if a friend request already exists for this user
   const isPendingRequest = (userId: string) => {
     return friends.some(friend => 
-      friend.id === userId && 
+      (friend.id === userId || friend.toUserId === userId) && 
       friend.status === 'pending' && 
       friend.addedBy === user?.id
     );
@@ -214,38 +213,43 @@ const Friends = () => {
                   </p>
                 </div>
               ) : (
-                acceptedFriends.map((friend) => (
-                  <div key={friend.id} className="flex items-center justify-between bg-secondary/20 p-4 rounded-lg">
-                    <div className="flex items-center space-x-3">
-                      <Avatar>
-                        <AvatarImage src={friend.avatar} />
-                        <AvatarFallback>{friend.name.charAt(0)}</AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <div className="font-medium">{friend.name}</div>
-                        <div className="text-sm text-muted-foreground">
-                          {friend.email || `user${friend.id}@example.com`}
+                acceptedFriends.map((friend) => {
+                  // Determine friend ID based on who added whom
+                  const friendId = friend.id === user?.id ? friend.toUserId! : friend.id;
+                  
+                  return (
+                    <div key={friendId} className="flex items-center justify-between bg-secondary/20 p-4 rounded-lg">
+                      <div className="flex items-center space-x-3">
+                        <Avatar>
+                          <AvatarImage src={friend.avatar} />
+                          <AvatarFallback>{friend.name.charAt(0)}</AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <div className="font-medium">{friend.name}</div>
+                          <div className="text-sm text-muted-foreground">
+                            {friend.email || `user${friend.id}@example.com`}
+                          </div>
                         </div>
                       </div>
+                      <div className="flex space-x-2">
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          asChild
+                        >
+                          <a href={`/messages?id=${friendId}`}>Сообщение</a>
+                        </Button>
+                        <Button 
+                          variant="destructive" 
+                          size="sm"
+                          onClick={() => handleRemoveFriend(friendId)}
+                        >
+                          Удалить
+                        </Button>
+                      </div>
                     </div>
-                    <div className="flex space-x-2">
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        asChild
-                      >
-                        <a href={`/messages?id=${friend.id === user?.id ? friend.addedBy : friend.id}`}>Сообщение</a>
-                      </Button>
-                      <Button 
-                        variant="destructive" 
-                        size="sm"
-                        onClick={() => handleRemoveFriend(friend.id === user?.id ? friend.addedBy! : friend.id)}
-                      >
-                        Удалить
-                      </Button>
-                    </div>
-                  </div>
-                ))
+                  )
+                })
               )}
             </div>
           </TabsContent>

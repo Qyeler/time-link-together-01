@@ -8,17 +8,8 @@ import { Button } from '../components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { Avatar, AvatarFallback, AvatarImage } from '../components/ui/avatar';
 import { Send } from 'lucide-react';
-import { Friend } from '../types';
+import { Friend, Message } from '../types';
 import { useLocation } from 'react-router-dom';
-
-// Тип сообщения
-interface Message {
-  id: string;
-  senderId: string;
-  receiverId: string;
-  content: string;
-  timestamp: Date;
-}
 
 const Messages = () => {
   const { friends } = useSchedule();
@@ -30,78 +21,49 @@ const Messages = () => {
   const [activeChat, setActiveChat] = useState<string | null>(initialChatId);
   const [message, setMessage] = useState('');
   
-  // Отфильтровать только друзей текущего пользователя со статусом "принято"
+  // Only show accepted friends of current user
   const acceptedFriends = friends.filter(friend => 
     friend.status === 'accepted' && 
-    // Добавляем проверку на принадлежность к пользователю
-    (friend.addedBy === user?.id || friend.id === user?.id)
+    (friend.addedBy === user?.id || friend.toUserId === user?.id)
   );
   
-  // Глобальное хранилище сообщений - в реальном приложении это пришло бы из базы данных
-  // Это имитация реализации системы сообщений в реальном времени
+  // Messages are stored per user
   const [messages, setMessages] = useState<Record<string, Message[]>>(() => {
-    // Пробуем получить сообщения из localStorage
-    const savedMessages = localStorage.getItem('chatMessages');
-    const parsedMessages = savedMessages ? JSON.parse(savedMessages) : {};
-    
-    // Если пользователь не авторизован, возвращаем пустой объект
     if (!user) return {};
     
-    // Отфильтровать сообщения, которые принадлежат текущему пользователю
-    const userMessages: Record<string, Message[]> = {};
-    
-    Object.entries(parsedMessages).forEach(([chatKey, chatMessages]) => {
-      const messagesArray = chatMessages as Message[];
-      // Отфильтровать сообщения, где текущий пользователь является отправителем или получателем
-      const userChatMessages = messagesArray.filter(
-        msg => msg.senderId === user.id || msg.receiverId === user.id
-      );
-      
-      if (userChatMessages.length > 0) {
-        userMessages[chatKey] = userChatMessages;
+    // Try to get messages from localStorage
+    const savedMessages = localStorage.getItem(`chatMessages_${user.id}`);
+    if (savedMessages) {
+      try {
+        const parsedMessages = JSON.parse(savedMessages);
+        
+        // Convert string dates to Date objects
+        const processedMessages: Record<string, Message[]> = {};
+        Object.entries(parsedMessages).forEach(([chatKey, chatMessages]) => {
+          processedMessages[chatKey] = (chatMessages as any[]).map(msg => ({
+            ...msg,
+            timestamp: new Date(msg.timestamp)
+          }));
+        });
+        
+        return processedMessages;
+      } catch (error) {
+        console.error('Error parsing chat messages:', error);
+        return {};
       }
-    });
-    
-    // Если нет никаких сообщений, возвращаем примеры только для текущего пользователя
-    if (Object.keys(userMessages).length === 0 && user.id === '1') {
-      return {
-        '2': [
-          {
-            id: '1',
-            senderId: '1',
-            receiverId: '2',
-            content: 'Привет, как дела?',
-            timestamp: new Date(Date.now() - 3600000).toISOString(),
-          },
-          {
-            id: '2',
-            senderId: '2',
-            receiverId: '1',
-            content: 'Привет! Все хорошо, спасибо!',
-            timestamp: new Date(Date.now() - 3500000).toISOString(),
-          },
-          {
-            id: '3',
-            senderId: '1',
-            receiverId: '2',
-            content: 'Готов к мероприятию завтра?',
-            timestamp: new Date(Date.now() - 3400000).toISOString(),
-          },
-        ],
-      };
     }
     
-    return userMessages;
+    return {};
   });
 
-  // Сохраняем сообщения в localStorage при их изменении
+  // Save messages to localStorage when they change
   useEffect(() => {
     if (user) {
-      localStorage.setItem('chatMessages', JSON.stringify(messages));
+      localStorage.setItem(`chatMessages_${user.id}`, JSON.stringify(messages));
     }
   }, [messages, user]);
   
-  // Устанавливаем начальный активный чат на основе параметра URL
+  // Set initial active chat
   useEffect(() => {
     if (initialChatId) {
       setActiveChat(initialChatId);
@@ -118,10 +80,10 @@ const Messages = () => {
       senderId: user.id,
       receiverId: activeChat,
       content: message,
-      timestamp: new Date().toISOString(),
+      timestamp: new Date(),
     };
     
-    // Создаем ключ чата на основе двух ID пользователей
+    // Create chat key for the conversation
     const chatKey = activeChat;
     
     setMessages(prev => ({
@@ -139,20 +101,14 @@ const Messages = () => {
     }
   };
   
-  // Создаем уникальный ключ чата для двух пользователей
-  const createChatKey = (userId1: string, userId2: string) => {
-    // Сортируем ID, чтобы гарантировать одинаковый ключ независимо от порядка
-    return [userId1, userId2].sort().join('_');
-  };
-  
-  // Получаем все сообщения для пользователя (как отправленные, так и полученные)
+  // Get messages for a specific conversation
   const getUserMessages = (friendId: string) => {
     if (!user) return [];
     
-    // Создаем ключ чата
+    // Create chat key for the conversation
     const chatKey = friendId;
     
-    // Возвращаем сообщения для этого чата или пустой массив
+    // Return messages for this chat or empty array
     return messages[chatKey] || [];
   };
   
@@ -171,10 +127,10 @@ const Messages = () => {
     return (
       <div className="space-y-2">
         {acceptedFriends.map((friend) => {
-          // Получаем сообщения конкретного чата
+          // Get messages for this chat
           const chatMessages = getUserMessages(friend.id);
           
-          // Находим последнее сообщение в чате
+          // Get last message in chat
           const lastMessage = chatMessages.length 
             ? chatMessages[chatMessages.length - 1]
             : null;
@@ -213,7 +169,7 @@ const Messages = () => {
       );
     }
     
-    // Получаем сообщения для активного чата
+    // Get messages for active chat
     const chatMessages = getUserMessages(activeChat);
     const activeFriend = acceptedFriends.find(f => f.id === activeChat);
     
@@ -259,7 +215,7 @@ const Messages = () => {
                       ? 'text-primary-foreground/70' 
                       : 'text-muted-foreground'
                   }`}>
-                    {new Date(msg.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                    {msg.timestamp instanceof Date ? msg.timestamp.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : 'Invalid time'}
                   </div>
                 </div>
               </div>

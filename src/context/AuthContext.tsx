@@ -49,24 +49,13 @@ const removeUserFromStorage = () => {
   localStorage.removeItem('user');
 };
 
-// Generate 10 mock users for the application
-const generateMockUsers = () => {
-  const users: Record<string, User> = {};
-  
-  for (let i = 1; i <= 10; i++) {
-    users[`user${i}`] = {
-      id: `user${i}`,
-      name: `Пользователь ${i}`,
-      email: `user${i}@example.com`,
-      avatar: `https://i.pravatar.cc/150?img=${i}`,
-    };
-  }
-  
-  return users;
+// Helper function to clear all user-related data
+const clearUserData = () => {
+  localStorage.removeItem('friends');
+  localStorage.removeItem('chatMessages');
+  localStorage.removeItem('userEvents');
+  localStorage.removeItem('userNotifications');
 };
-
-// Mock users for demo
-const mockUsers = generateMockUsers();
 
 export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
@@ -105,29 +94,13 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
       // Simulate network delay
       await new Promise(resolve => setTimeout(resolve, 500));
       
-      // Check if input is just 'userX' format
-      let loginInput = email;
-      if (!email.includes('@')) {
-        loginInput = `${email}@example.com`;
-      }
-      
-      // Find user by email
-      let userId = '';
-      for (const key in mockUsers) {
-        if (mockUsers[key].email.toLowerCase() === loginInput.toLowerCase()) {
-          userId = key;
-          break;
-        }
-      }
-      
-      // If user wasn't found by email, try direct userX format
-      if (!userId && email.startsWith('user') && /^user\d+$/.test(email)) {
-        userId = email;
-      }
-      
-      if (!userId || !mockUsers[userId]) {
+      // Only support user1-user10 format
+      if (!email.startsWith('user') || !/^user\d+$/.test(email)) {
         throw new Error('Пользователь не найден');
       }
+      
+      // Extract user ID number
+      const userId = email;
       
       // In a real app, this would validate password with backend
       // For demo, we're just checking if password matches userId
@@ -135,16 +108,21 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
         throw new Error('Неверный пароль');
       }
       
-      const foundUser = mockUsers[userId];
+      const mockUser: User = {
+        id: userId,
+        name: `User ${userId.replace('user', '')}`,
+        email: `${userId}@example.com`,
+        avatar: `https://i.pravatar.cc/150?img=${parseInt(userId.replace('user', '')) + 10}`,
+      };
       
       // Save user to state and localStorage
-      setUser(foundUser);
+      setUser(mockUser);
       setIsAuthenticated(true);
-      saveUserToStorage(foundUser);
+      saveUserToStorage(mockUser);
       
       toast({
         title: "Вход выполнен успешно",
-        description: `Добро пожаловать, ${foundUser.name}!`,
+        description: `Добро пожаловать, ${mockUser.name}!`,
       });
       
       return Promise.resolve();
@@ -170,14 +148,7 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
       // Simulate network delay
       await new Promise(resolve => setTimeout(resolve, 500));
       
-      // Check if email already exists
-      for (const key in mockUsers) {
-        if (mockUsers[key].email.toLowerCase() === email.toLowerCase()) {
-          throw new Error('Пользователь с таким email уже существует');
-        }
-      }
-      
-      // Create a new mock user
+      // Create a new user
       const newUserId = `user${Date.now()}`;
       const mockUser: User = {
         id: newUserId,
@@ -185,9 +156,6 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
         email: email,
         avatar: `https://i.pravatar.cc/150?img=${Math.floor(Math.random() * 70)}`,
       };
-      
-      // Add to mock users
-      mockUsers[newUserId] = mockUser;
       
       // Save user to state and localStorage
       setUser(mockUser);
@@ -218,10 +186,13 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
   const logout = () => {
     setIsLoading(true);
     
-    // Clear user data
+    // Clear user data from storage
+    removeUserFromStorage();
+    clearUserData();
+    
+    // Clear user data in state
     setUser(null);
     setIsAuthenticated(false);
-    removeUserFromStorage();
     
     toast({
       title: "Выход выполнен",
@@ -238,11 +209,6 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
       setIsAuthenticated(true);
       saveUserToStorage(updatedUser);
       
-      // Also update in mockUsers
-      if (mockUsers[user.id]) {
-        mockUsers[user.id] = updatedUser;
-      }
-      
       toast({
         title: "Профиль обновлен",
         description: "Ваш профиль был успешно обновлен",
@@ -253,24 +219,29 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
   const switchUser = (userId: string) => {
     setIsLoading(true);
     
-    const newUser = mockUsers[userId];
-    
-    if (newUser) {
-      setUser(newUser);
-      setIsAuthenticated(true);
-      saveUserToStorage(newUser);
-      
-      toast({
-        title: "Пользователь изменен",
-        description: `Вы вошли как ${newUser.name}`,
-      });
-    } else {
-      toast({
-        title: "Ошибка",
-        description: "Пользователь не найден",
-        variant: "destructive",
-      });
+    if (!userId.startsWith('user')) {
+      userId = `user${userId}`;
     }
+    
+    const mockUser: User = {
+      id: userId,
+      name: `User ${userId.replace('user', '')}`,
+      email: `${userId}@example.com`,
+      avatar: `https://i.pravatar.cc/150?img=${parseInt(userId.replace('user', '')) + 10}`,
+    };
+    
+    // Clear previous user data
+    clearUserData();
+    
+    // Set new user
+    setUser(mockUser);
+    setIsAuthenticated(true);
+    saveUserToStorage(mockUser);
+    
+    toast({
+      title: "Пользователь изменен",
+      description: `Вы вошли как ${mockUser.name}`,
+    });
     
     setIsLoading(false);
   };

@@ -1,14 +1,20 @@
 
 import React, { useState } from 'react';
-import { Bell, Search, LogIn } from 'lucide-react';
+import { Bell, LogIn } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { AuthOverlay } from '../Auth/AuthOverlay';
+import { useSchedule } from '../../context/ScheduleContext';
+import { Badge } from '../ui/badge';
 
 export const Navbar: React.FC = () => {
   const { isAuthenticated, user } = useAuth();
+  const { notifications } = useSchedule();
   const [showAuthOverlay, setShowAuthOverlay] = React.useState(false);
+  
+  // Count unread notifications
+  const unreadCount = notifications.filter(n => !n.isRead).length;
   
   return (
     <header className="bg-primary text-primary-foreground p-4 shadow-md">
@@ -19,21 +25,14 @@ export const Navbar: React.FC = () => {
           </Link>
         </div>
 
-        <div className="flex-1 max-w-md mx-4">
-          <div className="relative">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground/70" />
-            <input
-              type="search"
-              placeholder="Поиск"
-              className="w-full rounded-full border border-white/20 bg-white/10 py-2 pl-8 pr-4 text-sm text-white placeholder:text-white/70 focus:outline-none focus:ring-2 focus:ring-white/30"
-            />
-          </div>
-        </div>
-
         <nav className="flex items-center space-x-4">
           <Button variant="ghost" size="icon" className="relative">
             <Bell className="h-5 w-5" />
-            <span className="absolute top-0 right-0 flex h-2 w-2 items-center justify-center rounded-full bg-destructive text-destructive-foreground text-xs" />
+            {unreadCount > 0 && (
+              <Badge className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs bg-destructive text-destructive-foreground">
+                {unreadCount > 9 ? '9+' : unreadCount}
+              </Badge>
+            )}
           </Button>
           
           {isAuthenticated ? (

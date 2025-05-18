@@ -1,185 +1,9 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { Event, Group, Friend, CalendarViewMode, CalendarFilters, User, PrivacySettings, FriendRequest } from '../types';
+import { Event, Group, Friend, CalendarViewMode, CalendarFilters, User, PrivacySettings, FriendRequest, Notification } from '../types';
 import { addDays, subDays, differenceInDays, isSameDay, isWithinInterval } from 'date-fns';
 import { useAuth } from './AuthContext';
 import { toast } from '../hooks/use-toast';
-
-// Моковые данные для тестирования
-const mockUsers: User[] = [
-  { id: '1', name: 'Александр Петров', email: 'alex@example.com', avatar: 'https://i.pravatar.cc/150?img=1' },
-  { id: '2', name: 'Мария Иванова', email: 'maria@example.com', avatar: 'https://i.pravatar.cc/150?img=5' },
-  { id: '3', name: 'Дмитрий Сидоров', email: 'dmitry@example.com', avatar: 'https://i.pravatar.cc/150?img=8' },
-  { id: '4', name: 'Елена Смирнова', email: 'elena@example.com', avatar: 'https://i.pravatar.cc/150?img=9' },
-];
-
-// Дополнительные пользователи
-const additionalUsers: User[] = [
-  { id: '5', name: 'Иван Иванов', email: 'ivan@example.com', avatar: 'https://i.pravatar.cc/150?img=3' },
-  { id: '6', name: 'Ольга Петрова', email: 'olga@example.com', avatar: 'https://i.pravatar.cc/150?img=4' },
-  { id: '7', name: 'Сергей Кузнецов', email: 'sergey@example.com', avatar: 'https://i.pravatar.cc/150?img=6' },
-  { id: '8', name: 'Анна Соколова', email: 'anna@example.com', avatar: 'https://i.pravatar.cc/150?img=7' },
-];
-
-const allUsers = [...mockUsers, ...additionalUsers];
-
-// Add user1 through user10
-for (let i = 1; i <= 10; i++) {
-  if (!allUsers.find(u => u.id === `user${i}`)) {
-    allUsers.push({
-      id: `user${i}`,
-      name: `User ${i}`,
-      email: `user${i}@example.com`,
-      avatar: `https://i.pravatar.cc/150?img=${i + 10}`
-    });
-  }
-}
-
-const mockFriends: Friend[] = [
-  { ...mockUsers[1], status: 'accepted' },
-  { ...mockUsers[2], status: 'pending' },
-  { ...additionalUsers[0], status: 'accepted' }, 
-  { ...additionalUsers[1], status: 'accepted' },
-  { ...additionalUsers[2], status: 'pending' },
-];
-
-const mockGroups: Group[] = [
-  {
-    id: 'g1',
-    name: 'Проектная команда',
-    members: [mockUsers[0], mockUsers[1], mockUsers[2]],
-    avatar: 'https://i.pravatar.cc/150?img=20',
-  },
-  {
-    id: 'g2',
-    name: 'Спортивный клуб',
-    members: [mockUsers[0], mockUsers[3]],
-    avatar: 'https://i.pravatar.cc/150?img=23',
-  },
-];
-
-// Создаем набор моковых событий на текущий месяц
-const generateMockEvents = (baseDate: Date): Event[] => {
-  const currentUser = mockUsers[0]; // Текущий пользователь
-  const today = new Date(baseDate);
-  today.setHours(0, 0, 0, 0);
-  
-  const result: Event[] = [
-    {
-      id: 'e1',
-      title: 'Встреча с командой',
-      description: 'Обсуждение квартального плана',
-      start: addDays(today, 1),
-      end: addDays(today, 1),
-      location: 'Офис, переговорная №3',
-      color: '#4f46e5',
-      type: 'work',
-      createdBy: currentUser.id,
-      participants: [mockUsers[0], mockUsers[1], mockUsers[2]],
-      groupId: 'g1',
-    },
-    {
-      id: 'e2',
-      title: 'Тренировка',
-      description: 'Еженедельная тренировка',
-      start: addDays(today, 2),
-      end: addDays(today, 2),
-      location: 'Спортзал "Олимп"',
-      color: '#10b981',
-      type: 'personal',
-      createdBy: currentUser.id,
-      recurring: {
-        frequency: 'weekly',
-      },
-    },
-    {
-      id: 'e3',
-      title: 'Обед с Марией',
-      description: 'Встреча в кафе',
-      start: addDays(today, 3),
-      end: addDays(today, 3),
-      location: 'Кафе "Уют"',
-      color: '#f59e0b',
-      type: 'friend',
-      createdBy: currentUser.id,
-      participants: [mockUsers[0], mockUsers[1]],
-    },
-    {
-      id: 'e4',
-      title: 'Совещание по проекту',
-      description: 'Статус и планирование',
-      start: subDays(today, 2),
-      end: subDays(today, 2),
-      location: 'Онлайн, Zoom',
-      color: '#ef4444',
-      type: 'work',
-      createdBy: currentUser.id,
-      participants: [mockUsers[0], mockUsers[2]],
-      groupId: 'g1',
-    },
-    {
-      id: 'e5',
-      title: 'День рождения Елены',
-      description: 'Не забыть купить подарок!',
-      start: addDays(today, 5),
-      end: addDays(today, 5),
-      location: 'Ресторан "Панорама"',
-      color: '#8b5cf6',
-      type: 'friend',
-      createdBy: mockUsers[3].id,
-      participants: [mockUsers[0], mockUsers[3]],
-    },
-    {
-      id: 'e6',
-      title: 'Поход в кино',
-      description: 'Новый блокбастер',
-      start: addDays(today, 7),
-      end: addDays(today, 7),
-      location: 'Кинотеатр "Космос"',
-      color: '#ec4899',
-      type: 'friend',
-      createdBy: mockUsers[1].id,
-      participants: [mockUsers[0], mockUsers[1], mockUsers[3]],
-    },
-    // Добавим многодневное событие
-    {
-      id: 'e7',
-      title: 'Конференция',
-      description: 'Ежегодная отраслевая конференция',
-      start: new Date(today.getFullYear(), today.getMonth(), 16, 10, 0),
-      end: new Date(today.getFullYear(), today.getMonth(), 20, 18, 0),
-      isMultiDay: true,
-      location: 'Конференц-центр "Горизонт"',
-      color: '#0ea5e9',
-      type: 'work',
-      createdBy: currentUser.id,
-      participants: [mockUsers[0], mockUsers[1], mockUsers[2]],
-    },
-    // Многодневное событие с друзьями
-    {
-      id: 'e8',
-      title: 'Поездка на озеро',
-      description: 'Выходные на природе',
-      start: new Date(today.getFullYear(), today.getMonth(), 22, 8, 0),
-      end: new Date(today.getFullYear(), today.getMonth(), 24, 20, 0),
-      isMultiDay: true,
-      location: 'Озеро "Чистое"',
-      color: '#10b981',
-      type: 'friend',
-      createdBy: currentUser.id,
-      participants: [mockUsers[0], mockUsers[1], additionalUsers[0]],
-    }
-  ];
-  
-  return result;
-};
-
-const defaultPrivacySettings: PrivacySettings = {
-  whoCanSeeSchedule: 'friends',
-  whoCanInvite: 'friends',
-  whoCanMessage: 'friends',
-  whoCanSeeProfile: 'all',
-};
 
 interface ScheduleContextType {
   events: Event[];
@@ -187,6 +11,7 @@ interface ScheduleContextType {
   friends: Friend[];
   allUsers: User[];
   currentUser: User | null;
+  notifications: Notification[];
   privacySettings: PrivacySettings;
   viewMode: CalendarViewMode;
   filters: CalendarFilters;
@@ -214,7 +39,17 @@ interface ScheduleContextType {
   getFriendRequests: (userId: string) => Friend[];
   // Function to check if a friend request exists
   hasFriendRequest: (fromUserId: string, toUserId: string) => boolean;
+  // New functions for notifications
+  markNotificationAsRead: (notificationId: string) => void;
+  clearNotifications: () => void;
 }
+
+const defaultPrivacySettings: PrivacySettings = {
+  whoCanSeeSchedule: 'friends',
+  whoCanInvite: 'friends',
+  whoCanMessage: 'friends',
+  whoCanSeeProfile: 'all',
+};
 
 const ScheduleContext = createContext<ScheduleContextType>({
   events: [],
@@ -222,6 +57,7 @@ const ScheduleContext = createContext<ScheduleContextType>({
   friends: [],
   allUsers: [],
   currentUser: null,
+  notifications: [],
   privacySettings: defaultPrivacySettings,
   viewMode: 'month',
   filters: {
@@ -252,19 +88,86 @@ const ScheduleContext = createContext<ScheduleContextType>({
   // Friend request related functions
   getFriendRequests: () => [],
   hasFriendRequest: () => false,
+  // Notification functions
+  markNotificationAsRead: () => {},
+  clearNotifications: () => {},
 });
 
 export const useSchedule = () => useContext(ScheduleContext);
 
+// Helper to generate sample users based on a pattern
+const generateUserList = (): User[] => {
+  const userList: User[] = [];
+  
+  // Add user1 through user10
+  for (let i = 1; i <= 10; i++) {
+    userList.push({
+      id: `user${i}`,
+      name: `User ${i}`,
+      email: `user${i}@example.com`,
+      avatar: `https://i.pravatar.cc/150?img=${i + 10}`
+    });
+  }
+  
+  return userList;
+};
+
+// Helper to generate mock events for a user
+const generateUserEvents = (baseDate: Date, userId: string): Event[] => {
+  const today = new Date(baseDate);
+  today.setHours(0, 0, 0, 0);
+  
+  const events: Event[] = [
+    {
+      id: `e1-${userId}`,
+      title: 'Встреча с командой',
+      description: 'Обсуждение квартального плана',
+      start: addDays(today, 1),
+      end: addDays(today, 1),
+      location: 'Офис, переговорная №3',
+      color: '#4f46e5',
+      type: 'work',
+      createdBy: userId,
+      participants: [],
+    },
+    {
+      id: `e2-${userId}`,
+      title: 'Тренировка',
+      description: 'Еженедельная тренировка',
+      start: addDays(today, 2),
+      end: addDays(today, 2),
+      location: 'Спортзал "Олимп"',
+      color: '#10b981',
+      type: 'personal',
+      createdBy: userId,
+      recurring: {
+        frequency: 'weekly',
+      },
+    },
+    {
+      id: `e7-${userId}`,
+      title: 'Конференция',
+      description: 'Ежегодная отраслевая конференция',
+      start: new Date(today.getFullYear(), today.getMonth(), 16, 10, 0),
+      end: new Date(today.getFullYear(), today.getMonth(), 20, 18, 0),
+      isMultiDay: true,
+      location: 'Конференц-центр "Горизонт"',
+      color: '#0ea5e9',
+      type: 'work',
+      createdBy: userId,
+    }
+  ];
+  
+  return events;
+};
+
 export const ScheduleProvider: React.FC<{children: React.ReactNode}> = ({ children }) => {
   const { isAuthenticated, user: authUser, updateProfile } = useAuth();
   const [events, setEvents] = useState<Event[]>([]);
-  const [groups, setGroups] = useState<Group[]>(mockGroups);
-  const [friends, setFriends] = useState<Friend[]>(() => {
-    // Try to load friends from localStorage
-    const savedFriends = localStorage.getItem('friends');
-    return savedFriends ? JSON.parse(savedFriends) : mockFriends;
-  });
+  const [groups, setGroups] = useState<Group[]>([]);
+  const [friends, setFriends] = useState<Friend[]>([]);
+  const [allUsers, setAllUsers] = useState<User[]>([]);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [privacySettings, setPrivacySettings] = useState<PrivacySettings>(defaultPrivacySettings);
   const [viewMode, setViewMode] = useState<CalendarViewMode>('month');
@@ -276,50 +179,183 @@ export const ScheduleProvider: React.FC<{children: React.ReactNode}> = ({ childr
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
 
-  // Синхронизация текущего пользователя с авторизацией
+  // Initialize all users
+  useEffect(() => {
+    setAllUsers(generateUserList());
+  }, []);
+
+  // Sync current user with authentication
   useEffect(() => {
     if (authUser) {
       setCurrentUser(authUser);
+      
+      // Load user-specific data from localStorage or initialize
+      loadUserData(authUser.id);
+    } else {
+      setCurrentUser(null);
+      setFriends([]);
+      setEvents([]);
+      setGroups([]);
+      setNotifications([]);
     }
   }, [authUser]);
 
-  // Save friends to localStorage whenever they change
+  // Save user data whenever it changes
   useEffect(() => {
-    localStorage.setItem('friends', JSON.stringify(friends));
-  }, [friends]);
+    if (currentUser) {
+      saveUserData(currentUser.id);
+    }
+  }, [friends, events, notifications, currentUser]);
 
-  // Инициализация моковых событий при загрузке
-  useEffect(() => {
-    setEvents(generateMockEvents(selectedDate));
-  }, []);
+  // Load user-specific data from localStorage
+  const loadUserData = (userId: string) => {
+    try {
+      // Load friends
+      const savedFriends = localStorage.getItem(`friends_${userId}`);
+      if (savedFriends) {
+        setFriends(JSON.parse(savedFriends));
+      } else {
+        setFriends([]);
+      }
+      
+      // Load events
+      const savedEvents = localStorage.getItem(`events_${userId}`);
+      if (savedEvents) {
+        const parsedEvents = JSON.parse(savedEvents);
+        // Convert string dates back to Date objects
+        const eventsWithDates = parsedEvents.map((event: any) => ({
+          ...event,
+          start: new Date(event.start),
+          end: new Date(event.end),
+          recurring: event.recurring 
+            ? { 
+                ...event.recurring, 
+                until: event.recurring.until ? new Date(event.recurring.until) : undefined 
+              } 
+            : undefined
+        }));
+        setEvents(eventsWithDates);
+      } else {
+        // Initialize with default events
+        setEvents(generateUserEvents(selectedDate, userId));
+      }
+      
+      // Load groups
+      const savedGroups = localStorage.getItem(`groups_${userId}`);
+      if (savedGroups) {
+        setGroups(JSON.parse(savedGroups));
+      } else {
+        setGroups([]);
+      }
+      
+      // Load notifications
+      const savedNotifications = localStorage.getItem(`notifications_${userId}`);
+      if (savedNotifications) {
+        const parsedNotifications = JSON.parse(savedNotifications);
+        // Convert string dates back to Date objects
+        const notificationsWithDates = parsedNotifications.map((notification: any) => ({
+          ...notification,
+          createdAt: new Date(notification.createdAt)
+        }));
+        setNotifications(notificationsWithDates);
+      } else {
+        setNotifications([]);
+      }
+    } catch (error) {
+      console.error('Error loading user data:', error);
+    }
+  };
 
-  // Обновление моковых событий при изменении месяца
-  useEffect(() => {
-    setEvents(generateMockEvents(selectedDate));
-  }, [selectedDate.getMonth(), selectedDate.getFullYear()]);
+  // Save user data to localStorage
+  const saveUserData = (userId: string) => {
+    try {
+      localStorage.setItem(`friends_${userId}`, JSON.stringify(friends));
+      localStorage.setItem(`events_${userId}`, JSON.stringify(events));
+      localStorage.setItem(`groups_${userId}`, JSON.stringify(groups));
+      localStorage.setItem(`notifications_${userId}`, JSON.stringify(notifications));
+    } catch (error) {
+      console.error('Error saving user data:', error);
+    }
+  };
+
+  // Function to create a notification
+  const addNotification = (notification: Omit<Notification, 'id' | 'createdAt'>) => {
+    const newNotification: Notification = {
+      ...notification,
+      id: `notification-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      createdAt: new Date(),
+    };
+    
+    setNotifications(prev => [newNotification, ...prev]);
+    return newNotification.id;
+  };
+
+  // Function to mark notification as read
+  const markNotificationAsRead = (notificationId: string) => {
+    setNotifications(prev => 
+      prev.map(notification => 
+        notification.id === notificationId 
+          ? { ...notification, isRead: true } 
+          : notification
+      )
+    );
+  };
+
+  // Function to clear all notifications
+  const clearNotifications = () => {
+    setNotifications([]);
+  };
 
   // Function to get friend requests for a specific user
   const getFriendRequests = (userId: string): Friend[] => {
     return friends.filter(friend => 
       friend.status === 'pending' && 
-      (friend.id === userId || (friend as any).toUserId === currentUser?.id)
+      (friend.toUserId === userId)
     );
   };
 
   // Function to check if a friend request exists between two users
   const hasFriendRequest = (fromUserId: string, toUserId: string): boolean => {
     return friends.some(friend => 
-      (friend.id === fromUserId && (friend as any).toUserId === toUserId) || 
-      (friend.id === toUserId && (friend as any).toUserId === fromUserId)
+      (friend.id === fromUserId && friend.toUserId === toUserId) || 
+      (friend.id === toUserId && friend.toUserId === fromUserId)
     );
   };
 
   const addEvent = (event: Event) => {
-    // Если это многодневное событие, помечаем его
+    // If this is a multi-day event, mark it
     if (event.end.getTime() - event.start.getTime() > 24 * 60 * 60 * 1000) {
       event.isMultiDay = true;
     }
-    setEvents([...events, event]);
+    
+    setEvents(prev => [...prev, event]);
+    
+    // Notify participants
+    if (event.participants && event.participants.length > 0) {
+      event.participants.forEach(participant => {
+        if (participant.id !== currentUser?.id) {
+          // Add notification for each participant
+          addNotification({
+            userId: participant.id,
+            title: 'Новое событие',
+            message: `Вы были приглашены на событие "${event.title}"`,
+            type: 'event_invite',
+            isRead: false,
+            relatedId: event.id
+          });
+          
+          // Add event to participant's calendar
+          const participantEvent: Event = {
+            ...event,
+            id: `${event.id}-${participant.id}`, // Create a unique ID for each participant
+          };
+          
+          // In a real app, this would be an API call to add the event to the user's calendar
+          // For demo purposes, we just add it to our local storage
+        }
+      });
+    }
+    
     toast({
       title: "Событие создано",
       description: "Событие успешно добавлено в расписание",
@@ -327,7 +363,7 @@ export const ScheduleProvider: React.FC<{children: React.ReactNode}> = ({ childr
   };
 
   const updateEvent = (updatedEvent: Event) => {
-    // Обновляем признак многодневного события
+    // Update multi-day flag
     if (updatedEvent.end.getTime() - updatedEvent.start.getTime() > 24 * 60 * 60 * 1000) {
       updatedEvent.isMultiDay = true;
     } else {
@@ -335,6 +371,23 @@ export const ScheduleProvider: React.FC<{children: React.ReactNode}> = ({ childr
     }
     
     setEvents(events.map(event => event.id === updatedEvent.id ? updatedEvent : event));
+    
+    // Notify participants about the update
+    if (updatedEvent.participants && updatedEvent.participants.length > 0) {
+      updatedEvent.participants.forEach(participant => {
+        if (participant.id !== currentUser?.id) {
+          addNotification({
+            userId: participant.id,
+            title: 'Обновление события',
+            message: `Событие "${updatedEvent.title}" было обновлено`,
+            type: 'event_update',
+            isRead: false,
+            relatedId: updatedEvent.id
+          });
+        }
+      });
+    }
+    
     toast({
       title: "Событие обновлено",
       description: "Изменения успешно сохранены",
@@ -342,22 +395,42 @@ export const ScheduleProvider: React.FC<{children: React.ReactNode}> = ({ childr
   };
 
   const deleteEvent = (eventId: string) => {
+    // Get the event before deletion to notify participants
+    const eventToDelete = events.find(event => event.id === eventId);
+    
     setEvents(events.filter(event => event.id !== eventId));
+    
+    // Notify participants about deletion
+    if (eventToDelete && eventToDelete.participants && eventToDelete.participants.length > 0) {
+      eventToDelete.participants.forEach(participant => {
+        if (participant.id !== currentUser?.id) {
+          addNotification({
+            userId: participant.id,
+            title: 'Событие отменено',
+            message: `Событие "${eventToDelete.title}" было отменено`,
+            type: 'event_update',
+            isRead: false,
+            relatedId: eventId
+          });
+        }
+      });
+    }
+    
     toast({
       title: "Событие удалено",
       description: "Событие успешно удалено из расписания",
     });
   };
 
-  // Управление друзьями
+  // Friend management
   const sendFriendRequest = (userId: string) => {
     const targetUser = allUsers.find(u => u.id === userId);
     if (!targetUser || !currentUser) return;
     
-    // Проверяем, не отправлен ли уже запрос
+    // Check if request already exists
     const existingRequest = friends.find(f => 
-      (f.id === userId && (f as any).toUserId === currentUser.id) || 
-      (f.id === currentUser.id && (f as any).toUserId === userId)
+      (f.id === userId && f.toUserId === currentUser.id) || 
+      (f.id === currentUser.id && f.toUserId === userId)
     );
     
     if (existingRequest) {
@@ -368,14 +441,25 @@ export const ScheduleProvider: React.FC<{children: React.ReactNode}> = ({ childr
       return;
     }
     
-    // Create request with toUserId to track recipient
-    const friendRequest: Friend & { toUserId?: string } = { 
+    // Create friend request
+    const friendRequest: Friend = { 
       ...targetUser, 
       status: 'pending',
-      toUserId: userId // Tracks who should receive the request
+      addedBy: currentUser.id,
+      toUserId: userId
     };
     
-    setFriends([...friends, friendRequest]);
+    setFriends(prev => [...prev, friendRequest]);
+    
+    // Create notification for target user
+    addNotification({
+      userId: userId,
+      title: 'Новый запрос в друзья',
+      message: `${currentUser.name} хочет добавить вас в друзья`,
+      type: 'friend_request',
+      isRead: false,
+      relatedId: currentUser.id
+    });
     
     toast({
       title: "Запрос отправлен",
@@ -389,6 +473,22 @@ export const ScheduleProvider: React.FC<{children: React.ReactNode}> = ({ childr
         friend.id === userId ? { ...friend, status: 'accepted' } : friend
       )
     );
+    
+    // Get the user who sent the request
+    const requester = allUsers.find(u => u.id === userId);
+    
+    if (requester && currentUser) {
+      // Add notification for the requester
+      addNotification({
+        userId: userId,
+        title: 'Запрос в друзья принят',
+        message: `${currentUser.name} принял ваш запрос в друзья`,
+        type: 'friend_request',
+        isRead: false,
+        relatedId: currentUser.id
+      });
+    }
+    
     toast({
       title: "Запрос принят",
       description: "Пользователь добавлен в список друзей",
@@ -415,11 +515,11 @@ export const ScheduleProvider: React.FC<{children: React.ReactNode}> = ({ childr
     });
   };
   
-  // Обновление профиля
+  // Profile update
   const updateUserProfile = (userUpdate: Partial<User>) => {
-    setCurrentUser(prev => ({ ...prev, ...userUpdate }));
+    setCurrentUser(prev => prev ? { ...prev, ...userUpdate } : null);
     
-    // Синхронизация с AuthContext если есть
+    // Sync with AuthContext
     if (updateProfile) {
       updateProfile(userUpdate);
     }
@@ -430,7 +530,7 @@ export const ScheduleProvider: React.FC<{children: React.ReactNode}> = ({ childr
     });
   };
 
-  // Получение отфильтрованных событий на основе текущих фильтров
+  // Get filtered events based on current filters
   const getFilteredEvents = () => {
     return events.filter(event => {
       if (event.type === 'personal' && !filters.showPersonalEvents) return false;
@@ -448,6 +548,7 @@ export const ScheduleProvider: React.FC<{children: React.ReactNode}> = ({ childr
         friends,
         allUsers,
         currentUser,
+        notifications,
         privacySettings,
         viewMode,
         filters,
@@ -473,7 +574,10 @@ export const ScheduleProvider: React.FC<{children: React.ReactNode}> = ({ childr
         rejectFriend: declineFriendRequest,
         // Friend request related functions
         getFriendRequests,
-        hasFriendRequest
+        hasFriendRequest,
+        // Notification functions
+        markNotificationAsRead,
+        clearNotifications
       }}
     >
       {children}
