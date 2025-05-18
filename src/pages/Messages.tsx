@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { MainLayout } from '../components/Layout/MainLayout';
 import { useSchedule } from '../context/ScheduleContext';
 import { useAuth } from '../context/AuthContext';
@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs'
 import { Avatar, AvatarFallback, AvatarImage } from '../components/ui/avatar';
 import { Send } from 'lucide-react';
 import { Friend } from '../types';
+import { useLocation } from 'react-router-dom';
 
 // Mock message type
 interface Message {
@@ -22,38 +23,62 @@ interface Message {
 const Messages = () => {
   const { friends } = useSchedule();
   const { user } = useAuth();
-  const [activeChat, setActiveChat] = useState<string | null>(null);
+  const location = useLocation();
+  const queryParams = new URLSearchParams(location.search);
+  const initialChatId = queryParams.get('id');
+  
+  const [activeChat, setActiveChat] = useState<string | null>(initialChatId);
   const [message, setMessage] = useState('');
   
   // Filter only accepted friends
   const acceptedFriends = friends.filter(friend => friend.status === 'accepted');
   
-  // Mock messages data - in a real app this would come from a database
-  const [messages, setMessages] = useState<Record<string, Message[]>>({
-    'user2': [
-      {
-        id: '1',
-        senderId: 'user1',
-        receiverId: 'user2',
-        content: 'Привет, как дела?',
-        timestamp: new Date(Date.now() - 3600000),
-      },
-      {
-        id: '2',
-        senderId: 'user2',
-        receiverId: 'user1',
-        content: 'Привет! Все хорошо, спасибо!',
-        timestamp: new Date(Date.now() - 3500000),
-      },
-      {
-        id: '3',
-        senderId: 'user1',
-        receiverId: 'user2',
-        content: 'Готов к мероприятию завтра?',
-        timestamp: new Date(Date.now() - 3400000),
-      },
-    ],
+  // Global message store - in a real app this would come from a database
+  // This is a mock implementation that simulates a real-time messaging system
+  const [messages, setMessages] = useState<Record<string, Message[]>>(() => {
+    // Try to get messages from localStorage
+    const savedMessages = localStorage.getItem('chatMessages');
+    return savedMessages ? JSON.parse(savedMessages) : {
+      // Default sample messages
+      '2': [
+        {
+          id: '1',
+          senderId: '1',
+          receiverId: '2',
+          content: 'Привет, как дела?',
+          timestamp: new Date(Date.now() - 3600000).toISOString(),
+        },
+        {
+          id: '2',
+          senderId: '2',
+          receiverId: '1',
+          content: 'Привет! Все хорошо, спасибо!',
+          timestamp: new Date(Date.now() - 3500000).toISOString(),
+        },
+        {
+          id: '3',
+          senderId: '1',
+          receiverId: '2',
+          content: 'Готов к мероприятию завтра?',
+          timestamp: new Date(Date.now() - 3400000).toISOString(),
+        },
+      ],
+    };
   });
+
+  // Save messages to localStorage whenever they change
+  useEffect(() => {
+    localStorage.setItem('chatMessages', JSON.stringify(messages));
+  }, [messages]);
+  
+  // Set initial active chat based on URL param
+  useEffect(() => {
+    if (initialChatId) {
+      setActiveChat(initialChatId);
+    } else if (acceptedFriends.length > 0 && !activeChat) {
+      setActiveChat(acceptedFriends[0].id);
+    }
+  }, [initialChatId, acceptedFriends, activeChat]);
   
   const handleSendMessage = () => {
     if (!message.trim() || !activeChat || !user) return;
@@ -63,12 +88,15 @@ const Messages = () => {
       senderId: user.id,
       receiverId: activeChat,
       content: message,
-      timestamp: new Date(),
+      timestamp: new Date().toISOString(),
     };
+    
+    // Create chat key based on two user IDs (sorted to ensure consistency)
+    const chatKey = activeChat;
     
     setMessages(prev => ({
       ...prev,
-      [activeChat]: [...(prev[activeChat] || []), newMessage],
+      [chatKey]: [...(prev[chatKey] || []), newMessage],
     }));
     
     setMessage('');
@@ -79,6 +107,25 @@ const Messages = () => {
       e.preventDefault();
       handleSendMessage();
     }
+  };
+  
+  // Get all messages for a user, both sent and received
+  const getUserMessages = (userId: string) => {
+    const userChats: Record<string, Message[]> = {};
+    
+    // Gather all messages
+    Object.entries(messages).forEach(([chatId, chatMessages]) => {
+      const relevantMessages = chatMessages.filter(
+        msg => msg.senderId === userId || msg.receiverId === userId
+      );
+      
+      if (relevantMessages.length > 0) {
+        const otherUserId = chatId;
+        userChats[otherUserId] = relevantMessages;
+      }
+    });
+    
+    return userChats;
   };
   
   const renderChatList = () => {
@@ -95,28 +142,32 @@ const Messages = () => {
     
     return (
       <div className="space-y-2">
-        {acceptedFriends.map((friend) => (
-          <div
-            key={friend.id}
-            className={`flex items-center p-3 rounded-lg cursor-pointer ${
-              activeChat === friend.id ? 'bg-secondary' : 'hover:bg-secondary/50'
-            }`}
-            onClick={() => setActiveChat(friend.id)}
-          >
-            <Avatar className="h-10 w-10 mr-3">
-              <AvatarImage src={friend.avatar} />
-              <AvatarFallback>{friend.name.charAt(0)}</AvatarFallback>
-            </Avatar>
-            <div>
-              <div className="font-medium">{friend.name}</div>
-              <div className="text-sm text-muted-foreground truncate">
-                {messages[friend.id]?.length 
-                  ? messages[friend.id][messages[friend.id].length - 1].content
-                  : 'Нет сообщений'}
+        {acceptedFriends.map((friend) => {
+          const lastMessage = messages[friend.id]?.length 
+            ? messages[friend.id][messages[friend.id].length - 1]
+            : null;
+            
+          return (
+            <div
+              key={friend.id}
+              className={`flex items-center p-3 rounded-lg cursor-pointer ${
+                activeChat === friend.id ? 'bg-secondary' : 'hover:bg-secondary/50'
+              }`}
+              onClick={() => setActiveChat(friend.id)}
+            >
+              <Avatar className="h-10 w-10 mr-3">
+                <AvatarImage src={friend.avatar} />
+                <AvatarFallback>{friend.name.charAt(0)}</AvatarFallback>
+              </Avatar>
+              <div className="flex-1 min-w-0">
+                <div className="font-medium">{friend.name}</div>
+                <div className="text-sm text-muted-foreground truncate">
+                  {lastMessage ? lastMessage.content : 'Нет сообщений'}
+                </div>
               </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     );
   };

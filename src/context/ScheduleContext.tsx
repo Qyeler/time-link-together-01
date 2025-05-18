@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Event, Group, Friend, CalendarViewMode, CalendarFilters, User, PrivacySettings, FriendRequest } from '../types';
 import { addDays, subDays, differenceInDays, isSameDay, isWithinInterval } from 'date-fns';
@@ -21,6 +22,18 @@ const additionalUsers: User[] = [
 ];
 
 const allUsers = [...mockUsers, ...additionalUsers];
+
+// Add user1 through user10
+for (let i = 1; i <= 10; i++) {
+  if (!allUsers.find(u => u.id === `user${i}`)) {
+    allUsers.push({
+      id: `user${i}`,
+      name: `User ${i}`,
+      email: `user${i}@example.com`,
+      avatar: `https://i.pravatar.cc/150?img=${i + 10}`
+    });
+  }
+}
 
 const mockFriends: Friend[] = [
   { ...mockUsers[1], status: 'accepted' },
@@ -197,6 +210,10 @@ interface ScheduleContextType {
   addFriend: (friend: Friend) => void;
   acceptFriend: (friendId: string) => void;
   rejectFriend: (friendId: string) => void;
+  // Function to get friend requests for a user
+  getFriendRequests: (userId: string) => Friend[];
+  // Function to check if a friend request exists
+  hasFriendRequest: (fromUserId: string, toUserId: string) => boolean;
 }
 
 const ScheduleContext = createContext<ScheduleContextType>({
@@ -232,6 +249,9 @@ const ScheduleContext = createContext<ScheduleContextType>({
   addFriend: () => {},
   acceptFriend: () => {},
   rejectFriend: () => {},
+  // Friend request related functions
+  getFriendRequests: () => [],
+  hasFriendRequest: () => false,
 });
 
 export const useSchedule = () => useContext(ScheduleContext);
@@ -240,7 +260,11 @@ export const ScheduleProvider: React.FC<{children: React.ReactNode}> = ({ childr
   const { isAuthenticated, user: authUser, updateProfile } = useAuth();
   const [events, setEvents] = useState<Event[]>([]);
   const [groups, setGroups] = useState<Group[]>(mockGroups);
-  const [friends, setFriends] = useState<Friend[]>(mockFriends);
+  const [friends, setFriends] = useState<Friend[]>(() => {
+    // Try to load friends from localStorage
+    const savedFriends = localStorage.getItem('friends');
+    return savedFriends ? JSON.parse(savedFriends) : mockFriends;
+  });
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [privacySettings, setPrivacySettings] = useState<PrivacySettings>(defaultPrivacySettings);
   const [viewMode, setViewMode] = useState<CalendarViewMode>('month');
@@ -259,6 +283,11 @@ export const ScheduleProvider: React.FC<{children: React.ReactNode}> = ({ childr
     }
   }, [authUser]);
 
+  // Save friends to localStorage whenever they change
+  useEffect(() => {
+    localStorage.setItem('friends', JSON.stringify(friends));
+  }, [friends]);
+
   // Инициализация моковых событий при загрузке
   useEffect(() => {
     setEvents(generateMockEvents(selectedDate));
@@ -268,6 +297,22 @@ export const ScheduleProvider: React.FC<{children: React.ReactNode}> = ({ childr
   useEffect(() => {
     setEvents(generateMockEvents(selectedDate));
   }, [selectedDate.getMonth(), selectedDate.getFullYear()]);
+
+  // Function to get friend requests for a specific user
+  const getFriendRequests = (userId: string): Friend[] => {
+    return friends.filter(friend => 
+      friend.status === 'pending' && 
+      (friend.id === userId || (friend as any).toUserId === currentUser?.id)
+    );
+  };
+
+  // Function to check if a friend request exists between two users
+  const hasFriendRequest = (fromUserId: string, toUserId: string): boolean => {
+    return friends.some(friend => 
+      (friend.id === fromUserId && (friend as any).toUserId === toUserId) || 
+      (friend.id === toUserId && (friend as any).toUserId === fromUserId)
+    );
+  };
 
   const addEvent = (event: Event) => {
     // Если это многодневное событие, помечаем его
@@ -307,10 +352,14 @@ export const ScheduleProvider: React.FC<{children: React.ReactNode}> = ({ childr
   // Управление друзьями
   const sendFriendRequest = (userId: string) => {
     const targetUser = allUsers.find(u => u.id === userId);
-    if (!targetUser) return;
+    if (!targetUser || !currentUser) return;
     
     // Проверяем, не отправлен ли уже запрос
-    const existingRequest = friends.find(f => f.id === userId);
+    const existingRequest = friends.find(f => 
+      (f.id === userId && (f as any).toUserId === currentUser.id) || 
+      (f.id === currentUser.id && (f as any).toUserId === userId)
+    );
+    
     if (existingRequest) {
       toast({
         title: "Запрос уже отправлен",
@@ -319,8 +368,15 @@ export const ScheduleProvider: React.FC<{children: React.ReactNode}> = ({ childr
       return;
     }
     
-    // Добавляем пользователя в список друзей со статусом pending
-    setFriends([...friends, { ...targetUser, status: 'pending' }]);
+    // Create request with toUserId to track recipient
+    const friendRequest: Friend & { toUserId?: string } = { 
+      ...targetUser, 
+      status: 'pending',
+      toUserId: userId // Tracks who should receive the request
+    };
+    
+    setFriends([...friends, friendRequest]);
+    
     toast({
       title: "Запрос отправлен",
       description: `Запрос на добавление в друзья отправлен ${targetUser.name}`,
@@ -415,6 +471,9 @@ export const ScheduleProvider: React.FC<{children: React.ReactNode}> = ({ childr
         addFriend: (friend: Friend) => sendFriendRequest(friend.id),
         acceptFriend: acceptFriendRequest,
         rejectFriend: declineFriendRequest,
+        // Friend request related functions
+        getFriendRequests,
+        hasFriendRequest
       }}
     >
       {children}

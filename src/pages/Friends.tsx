@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { MainLayout } from '../components/Layout/MainLayout';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '../components/ui/card';
 import { Input } from '../components/ui/input';
@@ -10,12 +10,21 @@ import { Separator } from '../components/ui/separator';
 import { Search, UserPlus, Check, X } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useSchedule } from '../context/ScheduleContext';
-import { Friend } from '../types';
+import { Friend, User } from '../types';
 import { toast } from "@/hooks/use-toast";
 
 const Friends = () => {
   const { user, isAuthenticated } = useAuth();
-  const { friends, addFriend, acceptFriend, rejectFriend, removeFriend } = useSchedule();
+  const { 
+    friends, 
+    allUsers, 
+    addFriend, 
+    acceptFriend, 
+    rejectFriend, 
+    removeFriend, 
+    hasFriendRequest,
+    getFriendRequests 
+  } = useSchedule();
   
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
@@ -24,7 +33,7 @@ const Friends = () => {
   const acceptedFriends = friends.filter((friend) => friend.status === 'accepted');
   const pendingFriends = friends.filter((friend) => friend.status === 'pending');
   
-  // Search mock users based on query
+  // Search users based on query (name or email)
   const handleSearch = () => {
     if (!searchQuery.trim()) {
       toast({
@@ -44,72 +53,44 @@ const Friends = () => {
     }, 500);
   };
   
-  // Search results - simulated for demo
+  // Search results - now includes email search
   const searchResults = React.useMemo(() => {
-    if (!searchQuery.trim()) return [];
-    
-    // Access mock users from context
-    const mockUsers: Record<string, any> = {};
-    for (let i = 1; i <= 10; i++) {
-      mockUsers[`user${i}`] = {
-        id: `user${i}`,
-        name: `Пользователь ${i}`,
-        email: `user${i}@example.com`,
-        avatar: `https://i.pravatar.cc/150?img=${i}`,
-      };
-    }
-    
-    // Filter out current user
-    if (user) {
-      delete mockUsers[user.id];
-    }
+    if (!searchQuery.trim() || !user) return [];
     
     // Filter based on search query (name or email)
-    const results = Object.values(mockUsers).filter(mockUser => 
-      mockUser.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-      mockUser.email.toLowerCase().includes(searchQuery.toLowerCase())
+    const results = allUsers.filter(searchUser => 
+      searchUser.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+      (searchUser.email && searchUser.email.toLowerCase().includes(searchQuery.toLowerCase()))
     );
     
-    // Filter out users who are already friends or have pending requests
+    // Filter out current user
     return results.filter(result => 
-      !friends.some(friend => friend.id === result.id)
+      result.id !== user.id && 
+      !friends.some(friend => friend.id === result.id && friend.status === 'accepted')
     );
-  }, [searchQuery, friends, user]);
+  }, [searchQuery, friends, user, allUsers]);
   
-  const handleAddFriend = (friendToAdd: Friend) => {
-    addFriend(friendToAdd);
-    
-    toast({
-      title: "Заявка отправлена",
-      description: `Заявка дружбы отправлена пользователю ${friendToAdd.name}`
-    });
+  const handleAddFriend = (friendToAdd: User) => {
+    addFriend(friendToAdd as Friend);
   };
   
   const handleAcceptFriend = (friendId: string) => {
     acceptFriend(friendId);
-    
-    toast({
-      title: "Заявка принята",
-      description: "Пользователь добавлен в друзья"
-    });
   };
   
   const handleRejectFriend = (friendId: string) => {
     rejectFriend(friendId);
-    
-    toast({
-      title: "Заявка отклонена",
-      description: "Заявка на дружбу отклонена"
-    });
   };
   
   const handleRemoveFriend = (friendId: string) => {
     removeFriend(friendId);
-    
-    toast({
-      title: "Друг удален",
-      description: "Пользователь удален из списка друзей"
-    });
+  };
+
+  // Check if there's a pending friend request for this user
+  const isPendingRequest = (userId: string) => {
+    return friends.some(friend => 
+      friend.id === userId && friend.status === 'pending'
+    );
   };
   
   if (!isAuthenticated) {
@@ -128,7 +109,7 @@ const Friends = () => {
   
   return (
     <MainLayout>
-      <div className="container mx-auto max-w-4xl py-6">
+      <div className="container mx-auto max-w-4xl py-6 overflow-y-auto max-h-[calc(100vh-80px)]">
         <h1 className="text-3xl font-bold mb-8">Друзья и контакты</h1>
         
         <Card className="mb-8">
@@ -159,27 +140,40 @@ const Friends = () => {
               <div className="mt-6">
                 <h3 className="font-medium mb-3">Результаты поиска</h3>
                 <div className="space-y-3">
-                  {searchResults.map((result) => (
-                    <div key={result.id} className="flex items-center justify-between bg-secondary/20 p-3 rounded-lg">
-                      <div className="flex items-center space-x-3">
-                        <Avatar>
-                          <AvatarImage src={result.avatar} />
-                          <AvatarFallback>{result.name.charAt(0)}</AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <div className="font-medium">{result.name}</div>
-                          <div className="text-sm text-muted-foreground">{result.email}</div>
+                  {searchResults.map((result) => {
+                    const isPending = isPendingRequest(result.id);
+                    return (
+                      <div key={result.id} className="flex items-center justify-between bg-secondary/20 p-3 rounded-lg">
+                        <div className="flex items-center space-x-3">
+                          <Avatar>
+                            <AvatarImage src={result.avatar} />
+                            <AvatarFallback>{result.name.charAt(0)}</AvatarFallback>
+                          </Avatar>
+                          <div>
+                            <div className="font-medium">{result.name}</div>
+                            <div className="text-sm text-muted-foreground">{result.email}</div>
+                          </div>
                         </div>
+                        {isPending ? (
+                          <Button 
+                            size="sm"
+                            variant="secondary"
+                            disabled
+                          >
+                            Запрос отправлен
+                          </Button>
+                        ) : (
+                          <Button 
+                            size="sm" 
+                            onClick={() => handleAddFriend(result)}
+                          >
+                            <UserPlus className="mr-2 h-4 w-4" />
+                            Добавить
+                          </Button>
+                        )}
                       </div>
-                      <Button 
-                        size="sm" 
-                        onClick={() => handleAddFriend(result)}
-                      >
-                        <UserPlus className="mr-2 h-4 w-4" />
-                        Добавить
-                      </Button>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             )}
