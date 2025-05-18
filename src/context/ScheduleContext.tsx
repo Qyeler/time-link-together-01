@@ -428,8 +428,8 @@ export const ScheduleProvider: React.FC<{children: React.ReactNode}> = ({ childr
     
     // Check if request already exists
     const existingRequest = friends.find(f => 
-      (f.id === targetUser.id && f.toUserId === currentUser.id) || 
-      (f.id === currentUser.id && f.toUserId === targetUser.id)
+      (f.addedBy === currentUser.id && f.toUserId === targetUser.id) || 
+      (f.addedBy === targetUser.id && f.toUserId === currentUser.id)
     );
     
     if (existingRequest) {
@@ -440,12 +440,12 @@ export const ScheduleProvider: React.FC<{children: React.ReactNode}> = ({ childr
       return;
     }
     
-    // Create friend request - fixed to use proper fields
+    // Create new friend request with correct fields
     const friendRequest: Friend = {
-      ...targetUser,
+      ...targetUser,  // Copy target user properties (name, avatar, etc)
       status: 'pending',
-      addedBy: currentUser.id,
-      toUserId: targetUser.id // Ensure toUserId has the target user's ID
+      addedBy: currentUser.id,  // Current user is sending the request
+      toUserId: targetUser.id   // Target user is receiving the request
     };
     
     setFriends(prev => [...prev, friendRequest]);

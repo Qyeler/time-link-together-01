@@ -36,10 +36,11 @@ const Friends = () => {
     (friend.addedBy === user?.id || friend.toUserId === user?.id)
   );
   
-  // Get pending friend requests for current user - fixed to properly filter
+  // Get pending friend requests for current user - fixed to properly filter requests TO the current user
   const pendingFriends = friends.filter((friend) => 
     friend.status === 'pending' && 
-    friend.toUserId === user?.id
+    friend.toUserId === user?.id && 
+    friend.addedBy !== user?.id  // Make sure not to show requests sent by the current user
   );
   
   // Search for users by name or email
@@ -62,7 +63,7 @@ const Friends = () => {
     }, 500);
   };
   
-  // Search results - now includes email search
+  // Search results now excludes users with pending requests
   const searchResults = React.useMemo(() => {
     if (!searchQuery.trim() || !user) return [];
     
@@ -76,36 +77,24 @@ const Friends = () => {
     return results.filter(result => 
       result.id !== user.id && 
       !acceptedFriends.some(friend => 
-        (friend.id === result.id && friend.toUserId === user.id) || 
-        (friend.toUserId === result.id && friend.addedBy === user.id)
+        (friend.addedBy === user.id && friend.toUserId === result.id) ||
+        (friend.addedBy === result.id && friend.toUserId === user.id)
       )
     );
   }, [searchQuery, acceptedFriends, user, allUsers]);
   
   const handleAddFriend = (friendToAdd: User) => {
     if (user) {
-      // Now correctly passes a userId (string) to the addFriend function
+      // Correctly pass the target user's ID
       addFriend(friendToAdd.id);
     }
   };
   
-  const handleAcceptFriend = (friendId: string) => {
-    acceptFriend(friendId);
-  };
-  
-  const handleRejectFriend = (friendId: string) => {
-    rejectFriend(friendId);
-  };
-  
-  const handleRemoveFriend = (friendId: string) => {
-    removeFriend(friendId);
-  };
-
   // Check if a friend request already exists for this user
   const isPendingRequest = (userId: string) => {
     return friends.some(friend => 
-      ((friend.id === userId && friend.toUserId === user?.id) || 
-       (friend.toUserId === userId && friend.addedBy === user?.id)) && 
+      friend.addedBy === user?.id && 
+      friend.toUserId === userId && 
       friend.status === 'pending'
     );
   };
