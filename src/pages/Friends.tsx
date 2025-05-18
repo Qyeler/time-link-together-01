@@ -38,7 +38,8 @@ const Friends = () => {
   // Get pending friends requests sent TO current user (not FROM them)
   const pendingFriends = friends.filter((friend) => 
     friend.status === 'pending' && 
-    friend.toUserId === user?.id
+    friend.toUserId === user?.id && 
+    friend.addedBy !== user?.id
   );
   
   useEffect(() => {
@@ -108,7 +109,7 @@ const Friends = () => {
       }, 500);
       
       toast({
-        title: "Запрос от��равлен",
+        title: "Запрос отправлен",
         description: `Запрос на добавление в друзья отправлен ${friendToAdd.name}`
       });
     }

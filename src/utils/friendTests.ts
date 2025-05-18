@@ -14,11 +14,15 @@ export const testFriendRequestExists = (
   fromUserId: string,
   toUserId: string
 ): boolean => {
-  return friends.some(friend => 
+  const request = friends.find(friend => 
     friend.addedBy === fromUserId && 
     friend.toUserId === toUserId && 
     friend.status === 'pending'
   );
+  
+  console.log(`Request from ${fromUserId} to ${toUserId}: ${request ? 'EXISTS' : 'NOT FOUND'}`);
+  
+  return !!request;
 };
 
 /**
@@ -51,6 +55,9 @@ export const runFriendTests = (
   }
   
   console.group("Friend System Tests");
+  console.log("Current user:", currentUser);
+  console.log("Target user:", testUser);
+  console.log("All friend entries:", friends);
   
   // Test 1: Check directionality - requests should go FROM current user TO target
   const hasCorrectDirection = testFriendRequestExists(friends, currentUser.id, testUser.id);

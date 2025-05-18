@@ -653,3 +653,5 @@ export const ScheduleProvider: React.FC<{children: React.ReactNode}> = ({ childr
     </ScheduleContext.Provider>
   );
 };
+
+export { ScheduleContext };
