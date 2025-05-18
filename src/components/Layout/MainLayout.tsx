@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { Sidebar } from './Sidebar';
 import { Navbar } from './Navbar';
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "../ui/resizable";
@@ -9,7 +9,7 @@ interface MainLayoutProps {
 }
 
 export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
-  const [sidebarSize, setSidebarSize] = useState(20); // Default sidebar size as percentage
+  const [sidebarSize, setSidebarSize] = React.useState(20); // Default sidebar size as percentage
 
   return (
     <div className="min-h-screen flex flex-col">
