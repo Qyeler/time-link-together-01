@@ -11,7 +11,7 @@ import { Send } from 'lucide-react';
 import { Friend } from '../types';
 import { useLocation } from 'react-router-dom';
 
-// Mock message type
+// Тип сообщения
 interface Message {
   id: string;
   senderId: string;
@@ -30,48 +30,78 @@ const Messages = () => {
   const [activeChat, setActiveChat] = useState<string | null>(initialChatId);
   const [message, setMessage] = useState('');
   
-  // Filter only accepted friends
-  const acceptedFriends = friends.filter(friend => friend.status === 'accepted');
+  // Отфильтровать только друзей текущего пользователя со статусом "принято"
+  const acceptedFriends = friends.filter(friend => 
+    friend.status === 'accepted' && 
+    // Добавляем проверку на принадлежность к пользователю
+    (friend.addedBy === user?.id || friend.id === user?.id)
+  );
   
-  // Global message store - in a real app this would come from a database
-  // This is a mock implementation that simulates a real-time messaging system
+  // Глобальное хранилище сообщений - в реальном приложении это пришло бы из базы данных
+  // Это имитация реализации системы сообщений в реальном времени
   const [messages, setMessages] = useState<Record<string, Message[]>>(() => {
-    // Try to get messages from localStorage
+    // Пробуем получить сообщения из localStorage
     const savedMessages = localStorage.getItem('chatMessages');
-    return savedMessages ? JSON.parse(savedMessages) : {
-      // Default sample messages
-      '2': [
-        {
-          id: '1',
-          senderId: '1',
-          receiverId: '2',
-          content: 'Привет, как дела?',
-          timestamp: new Date(Date.now() - 3600000).toISOString(),
-        },
-        {
-          id: '2',
-          senderId: '2',
-          receiverId: '1',
-          content: 'Привет! Все хорошо, спасибо!',
-          timestamp: new Date(Date.now() - 3500000).toISOString(),
-        },
-        {
-          id: '3',
-          senderId: '1',
-          receiverId: '2',
-          content: 'Готов к мероприятию завтра?',
-          timestamp: new Date(Date.now() - 3400000).toISOString(),
-        },
-      ],
-    };
+    const parsedMessages = savedMessages ? JSON.parse(savedMessages) : {};
+    
+    // Если пользователь не авторизован, возвращаем пустой объект
+    if (!user) return {};
+    
+    // Отфильтровать сообщения, которые принадлежат текущему пользователю
+    const userMessages: Record<string, Message[]> = {};
+    
+    Object.entries(parsedMessages).forEach(([chatKey, chatMessages]) => {
+      const messagesArray = chatMessages as Message[];
+      // Отфильтровать сообщения, где текущий пользователь является отправителем или получателем
+      const userChatMessages = messagesArray.filter(
+        msg => msg.senderId === user.id || msg.receiverId === user.id
+      );
+      
+      if (userChatMessages.length > 0) {
+        userMessages[chatKey] = userChatMessages;
+      }
+    });
+    
+    // Если нет никаких сообщений, возвращаем примеры только для текущего пользователя
+    if (Object.keys(userMessages).length === 0 && user.id === '1') {
+      return {
+        '2': [
+          {
+            id: '1',
+            senderId: '1',
+            receiverId: '2',
+            content: 'Привет, как дела?',
+            timestamp: new Date(Date.now() - 3600000).toISOString(),
+          },
+          {
+            id: '2',
+            senderId: '2',
+            receiverId: '1',
+            content: 'Привет! Все хорошо, спасибо!',
+            timestamp: new Date(Date.now() - 3500000).toISOString(),
+          },
+          {
+            id: '3',
+            senderId: '1',
+            receiverId: '2',
+            content: 'Готов к мероприятию завтра?',
+            timestamp: new Date(Date.now() - 3400000).toISOString(),
+          },
+        ],
+      };
+    }
+    
+    return userMessages;
   });
 
-  // Save messages to localStorage whenever they change
+  // Сохраняем сообщения в localStorage при их изменении
   useEffect(() => {
-    localStorage.setItem('chatMessages', JSON.stringify(messages));
-  }, [messages]);
+    if (user) {
+      localStorage.setItem('chatMessages', JSON.stringify(messages));
+    }
+  }, [messages, user]);
   
-  // Set initial active chat based on URL param
+  // Устанавливаем начальный активный чат на основе параметра URL
   useEffect(() => {
     if (initialChatId) {
       setActiveChat(initialChatId);
@@ -91,7 +121,7 @@ const Messages = () => {
       timestamp: new Date().toISOString(),
     };
     
-    // Create chat key based on two user IDs (sorted to ensure consistency)
+    // Создаем ключ чата на основе двух ID пользователей
     const chatKey = activeChat;
     
     setMessages(prev => ({
@@ -109,23 +139,21 @@ const Messages = () => {
     }
   };
   
-  // Get all messages for a user, both sent and received
-  const getUserMessages = (userId: string) => {
-    const userChats: Record<string, Message[]> = {};
+  // Создаем уникальный ключ чата для двух пользователей
+  const createChatKey = (userId1: string, userId2: string) => {
+    // Сортируем ID, чтобы гарантировать одинаковый ключ независимо от порядка
+    return [userId1, userId2].sort().join('_');
+  };
+  
+  // Получаем все сообщения для пользователя (как отправленные, так и полученные)
+  const getUserMessages = (friendId: string) => {
+    if (!user) return [];
     
-    // Gather all messages
-    Object.entries(messages).forEach(([chatId, chatMessages]) => {
-      const relevantMessages = chatMessages.filter(
-        msg => msg.senderId === userId || msg.receiverId === userId
-      );
-      
-      if (relevantMessages.length > 0) {
-        const otherUserId = chatId;
-        userChats[otherUserId] = relevantMessages;
-      }
-    });
+    // Создаем ключ чата
+    const chatKey = friendId;
     
-    return userChats;
+    // Возвращаем сообщения для этого чата или пустой массив
+    return messages[chatKey] || [];
   };
   
   const renderChatList = () => {
@@ -143,8 +171,12 @@ const Messages = () => {
     return (
       <div className="space-y-2">
         {acceptedFriends.map((friend) => {
-          const lastMessage = messages[friend.id]?.length 
-            ? messages[friend.id][messages[friend.id].length - 1]
+          // Получаем сообщения конкретного чата
+          const chatMessages = getUserMessages(friend.id);
+          
+          // Находим последнее сообщение в чате
+          const lastMessage = chatMessages.length 
+            ? chatMessages[chatMessages.length - 1]
             : null;
             
           return (
@@ -173,7 +205,7 @@ const Messages = () => {
   };
   
   const renderChatMessages = () => {
-    if (!activeChat) {
+    if (!activeChat || !user) {
       return (
         <div className="flex items-center justify-center h-full text-muted-foreground">
           Выберите чат, чтобы начать общение
@@ -181,7 +213,8 @@ const Messages = () => {
       );
     }
     
-    const chatMessages = messages[activeChat] || [];
+    // Получаем сообщения для активного чата
+    const chatMessages = getUserMessages(activeChat);
     const activeFriend = acceptedFriends.find(f => f.id === activeChat);
     
     if (!activeFriend) {
@@ -211,18 +244,18 @@ const Messages = () => {
             chatMessages.map(msg => (
               <div 
                 key={msg.id} 
-                className={`flex ${msg.senderId === user?.id ? 'justify-end' : 'justify-start'}`}
+                className={`flex ${msg.senderId === user.id ? 'justify-end' : 'justify-start'}`}
               >
                 <div 
                   className={`max-w-[80%] p-3 rounded-lg ${
-                    msg.senderId === user?.id 
+                    msg.senderId === user.id 
                       ? 'bg-primary text-primary-foreground' 
                       : 'bg-secondary'
                   }`}
                 >
                   <div>{msg.content}</div>
                   <div className={`text-xs ${
-                    msg.senderId === user?.id 
+                    msg.senderId === user.id 
                       ? 'text-primary-foreground/70' 
                       : 'text-muted-foreground'
                   }`}>

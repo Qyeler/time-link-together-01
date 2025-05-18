@@ -29,11 +29,19 @@ const Friends = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   
-  // Filter friends by status
-  const acceptedFriends = friends.filter((friend) => friend.status === 'accepted');
-  const pendingFriends = friends.filter((friend) => friend.status === 'pending');
+  // Фильтруем друзей по статусу и принадлежности к текущему пользователю
+  const acceptedFriends = friends.filter((friend) => 
+    friend.status === 'accepted' && 
+    (friend.addedBy === user?.id || friend.id === user?.id)
+  );
   
-  // Search users based on query (name or email)
+  const pendingFriends = friends.filter((friend) => 
+    friend.status === 'pending' && 
+    // Только те заявки, которые отправлены текущему пользователю
+    ((friend.addedBy && friend.addedBy !== user?.id) || friend.toUserId === user?.id)
+  );
+  
+  // Поиск пользователей по запросу (имя или email)
   const handleSearch = () => {
     if (!searchQuery.trim()) {
       toast({
@@ -46,32 +54,40 @@ const Friends = () => {
     
     setIsSearching(true);
     
-    // In a real app, this would be an API call
-    // For this demo, we're simulating a search with a delay
+    // В реальном приложении это был бы API-вызов
+    // Для этого демо имитируем поиск с задержкой
     setTimeout(() => {
       setIsSearching(false);
     }, 500);
   };
   
-  // Search results - now includes email search
+  // Результаты поиска - теперь включает поиск по email
   const searchResults = React.useMemo(() => {
     if (!searchQuery.trim() || !user) return [];
     
-    // Filter based on search query (name or email)
+    // Фильтрация на основе поискового запроса (имя или email)
     const results = allUsers.filter(searchUser => 
       searchUser.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
       (searchUser.email && searchUser.email.toLowerCase().includes(searchQuery.toLowerCase()))
     );
     
-    // Filter out current user
+    // Исключить текущего пользователя и уже добавленных друзей
     return results.filter(result => 
       result.id !== user.id && 
-      !friends.some(friend => friend.id === result.id && friend.status === 'accepted')
+      !acceptedFriends.some(friend => 
+        (friend.id === result.id && friend.addedBy === user.id) || 
+        (friend.addedBy === result.id && friend.id === user.id)
+      )
     );
-  }, [searchQuery, friends, user, allUsers]);
+  }, [searchQuery, acceptedFriends, user, allUsers]);
   
   const handleAddFriend = (friendToAdd: User) => {
-    addFriend(friendToAdd as Friend);
+    if (user) {
+      addFriend({
+        ...friendToAdd as Friend,
+        addedBy: user.id // Добавляем информацию о том, кто добавил друга
+      });
+    }
   };
   
   const handleAcceptFriend = (friendId: string) => {
@@ -86,10 +102,12 @@ const Friends = () => {
     removeFriend(friendId);
   };
 
-  // Check if there's a pending friend request for this user
+  // Проверяем, есть ли уже запрос на добавление в друзья для этого пользователя
   const isPendingRequest = (userId: string) => {
     return friends.some(friend => 
-      friend.id === userId && friend.status === 'pending'
+      friend.id === userId && 
+      friend.status === 'pending' && 
+      friend.addedBy === user?.id
     );
   };
   
@@ -216,12 +234,12 @@ const Friends = () => {
                         size="sm" 
                         asChild
                       >
-                        <a href={`/messages?id=${friend.id}`}>Сообщение</a>
+                        <a href={`/messages?id=${friend.id === user?.id ? friend.addedBy : friend.id}`}>Сообщение</a>
                       </Button>
                       <Button 
                         variant="destructive" 
                         size="sm"
-                        onClick={() => handleRemoveFriend(friend.id)}
+                        onClick={() => handleRemoveFriend(friend.id === user?.id ? friend.addedBy! : friend.id)}
                       >
                         Удалить
                       </Button>
