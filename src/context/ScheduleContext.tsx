@@ -30,8 +30,8 @@ interface ScheduleContextType {
   removeFriend: (userId: string) => void;
   updateUserProfile: (user: Partial<User>) => void;
   isAuthenticated: boolean;
-  // Add aliases for functions used in Friends.tsx
-  addFriend: (friend: Friend) => void;
+  // Change the type definition to match the implementation
+  addFriend: (userId: string) => void;
   acceptFriend: (friendId: string) => void;
   rejectFriend: (friendId: string) => void;
   // Function to get friend requests for a user
@@ -80,7 +80,7 @@ const ScheduleContext = createContext<ScheduleContextType>({
   removeFriend: () => {},
   updateUserProfile: () => {},
   isAuthenticated: false,
-  // Add empty implementations for aliases
+  // Change the type definition to match the implementation
   addFriend: () => {},
   acceptFriend: () => {},
   rejectFriend: () => {},
@@ -568,8 +568,8 @@ export const ScheduleProvider: React.FC<{children: React.ReactNode}> = ({ childr
         removeFriend,
         updateUserProfile,
         isAuthenticated,
-        // Fixed aliases to match the functions used in Friends.tsx
-        addFriend: sendFriendRequest, // Use the correct function here
+        // Fixed aliases to match the updated type definitions
+        addFriend: sendFriendRequest,
         acceptFriend: acceptFriendRequest,
         rejectFriend: declineFriendRequest,
         // Friend request related functions

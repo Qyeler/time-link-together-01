@@ -84,7 +84,7 @@ const Friends = () => {
   
   const handleAddFriend = (friendToAdd: User) => {
     if (user) {
-      // Make sure we're using the correct user ID for the toUserId
+      // Now correctly passes a userId (string) to the addFriend function
       addFriend(friendToAdd.id);
     }
   };
