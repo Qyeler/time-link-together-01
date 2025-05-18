@@ -71,13 +71,13 @@ export interface Message {
   timestamp: Date;
 }
 
-// Notification type
+// Notification type - Added 'friend_accepted' to the type union
 export interface Notification {
   id: string;
   userId: string;
   title: string;
   message: string;
-  type: 'friend_request' | 'event_invite' | 'event_update' | 'system';
+  type: 'friend_request' | 'friend_accepted' | 'event_invite' | 'event_update' | 'system';
   isRead: boolean;
   createdAt: Date;
   relatedId?: string; // ID связанного объекта (события, друга и т.д.)

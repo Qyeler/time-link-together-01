@@ -12,6 +12,7 @@ import { toast } from "@/hooks/use-toast";
 import { useIsMobile } from '../hooks/use-mobile';
 import { FriendItem } from '../components/Friends/FriendItem';
 import { runFriendTests } from '../utils/friendTests';
+import { Avatar, AvatarImage, AvatarFallback } from '../components/ui/avatar';
 
 const Friends = () => {
   const { user, isAuthenticated } = useAuth();
@@ -107,7 +108,7 @@ const Friends = () => {
       }, 500);
       
       toast({
-        title: "Запрос отправлен",
+        title: "Запрос от��равлен",
         description: `Запрос на добавление в друзья отправлен ${friendToAdd.name}`
       });
     }
