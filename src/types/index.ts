@@ -8,8 +8,8 @@ export interface User {
 
 export interface Friend extends User {
   status: 'pending' | 'accepted' | 'declined';
-  addedBy?: string; // ID пользователя, который добавил друга
-  toUserId?: string; // ID пользователя, которому отправлен запрос
+  addedBy: string; // ID пользователя, который добавил друга
+  toUserId: string; // ID пользователя, которому отправлен запрос
 }
 
 export interface Group {

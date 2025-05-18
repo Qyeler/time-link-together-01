@@ -12,6 +12,7 @@ import { useAuth } from '../context/AuthContext';
 import { useSchedule } from '../context/ScheduleContext';
 import { Friend, User } from '../types';
 import { toast } from "@/hooks/use-toast";
+import { useIsMobile } from '../hooks/use-mobile';
 
 const Friends = () => {
   const { user, isAuthenticated } = useAuth();
@@ -26,6 +27,7 @@ const Friends = () => {
     getFriendRequests 
   } = useSchedule();
   
+  const isMobile = useIsMobile();
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   
@@ -38,8 +40,7 @@ const Friends = () => {
   // Get pending friend requests for current user
   const pendingFriends = friends.filter((friend) => 
     friend.status === 'pending' && 
-    // Only requests sent to current user
-    (friend.toUserId === user?.id)
+    friend.toUserId === user?.id
   );
   
   // Search for users by name or email
@@ -75,7 +76,10 @@ const Friends = () => {
     // Exclude current user and already added friends
     return results.filter(result => 
       result.id !== user.id && 
-      !acceptedFriends.some(friend => friend.id === result.id || friend.toUserId === result.id)
+      !acceptedFriends.some(friend => 
+        (friend.id === result.id && friend.toUserId === user.id) || 
+        (friend.toUserId === result.id && friend.addedBy === user.id)
+      )
     );
   }, [searchQuery, acceptedFriends, user, allUsers]);
   
@@ -83,6 +87,7 @@ const Friends = () => {
     if (user) {
       addFriend({
         ...friendToAdd as Friend,
+        status: 'pending',
         addedBy: user.id,
         toUserId: friendToAdd.id
       });
@@ -104,9 +109,9 @@ const Friends = () => {
   // Check if a friend request already exists for this user
   const isPendingRequest = (userId: string) => {
     return friends.some(friend => 
-      (friend.id === userId || friend.toUserId === userId) && 
-      friend.status === 'pending' && 
-      friend.addedBy === user?.id
+      ((friend.id === userId && friend.toUserId === user?.id) || 
+       (friend.toUserId === userId && friend.addedBy === user?.id)) && 
+      friend.status === 'pending'
     );
   };
   
@@ -137,7 +142,7 @@ const Friends = () => {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="flex gap-4">
+            <div className="flex flex-col sm:flex-row gap-4">
               <div className="relative flex-1">
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
@@ -148,7 +153,7 @@ const Friends = () => {
                   onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
                 />
               </div>
-              <Button onClick={handleSearch} disabled={isSearching}>
+              <Button onClick={handleSearch} disabled={isSearching} className={isMobile ? "w-full" : ""}>
                 {isSearching ? "Поиск..." : "Найти"}
               </Button>
             </div>
@@ -197,10 +202,10 @@ const Friends = () => {
           </CardContent>
         </Card>
         
-        <Tabs defaultValue="friends">
-          <TabsList className="mb-6">
-            <TabsTrigger value="friends">Друзья ({acceptedFriends.length})</TabsTrigger>
-            <TabsTrigger value="requests">Заявки ({pendingFriends.length})</TabsTrigger>
+        <Tabs defaultValue="friends" className="w-full">
+          <TabsList className="mb-6 w-full">
+            <TabsTrigger value="friends" className="flex-1">Друзья ({acceptedFriends.length})</TabsTrigger>
+            <TabsTrigger value="requests" className="flex-1">Заявки ({pendingFriends.length})</TabsTrigger>
           </TabsList>
           
           <TabsContent value="friends">
@@ -215,23 +220,25 @@ const Friends = () => {
               ) : (
                 acceptedFriends.map((friend) => {
                   // Determine friend ID based on who added whom
-                  const friendId = friend.id === user?.id ? friend.toUserId! : friend.id;
+                  const friendId = friend.id === user?.id ? friend.toUserId : friend.id;
+                  // Determine friend name
+                  const friendName = friend.id === user?.id ? friend.toUserId : friend.name;
                   
                   return (
                     <div key={friendId} className="flex items-center justify-between bg-secondary/20 p-4 rounded-lg">
                       <div className="flex items-center space-x-3">
                         <Avatar>
                           <AvatarImage src={friend.avatar} />
-                          <AvatarFallback>{friend.name.charAt(0)}</AvatarFallback>
+                          <AvatarFallback>{friendName.charAt(0)}</AvatarFallback>
                         </Avatar>
                         <div>
-                          <div className="font-medium">{friend.name}</div>
+                          <div className="font-medium">{friendName}</div>
                           <div className="text-sm text-muted-foreground">
-                            {friend.email || `user${friend.id}@example.com`}
+                            {friend.email || `user${friendId}@example.com`}
                           </div>
                         </div>
                       </div>
-                      <div className="flex space-x-2">
+                      <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
                         <Button 
                           variant="outline" 
                           size="sm" 
@@ -278,7 +285,7 @@ const Friends = () => {
                         </div>
                       </div>
                     </div>
-                    <div className="flex space-x-2">
+                    <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
                       <Button 
                         variant="default" 
                         size="sm"
